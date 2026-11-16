@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Apex 戦術ボード</title>
+<style>
+  :root { --bg:#eceef2; --panel:#ffffff; --line:#d7dbe2; --text:#1d2129; --sub:#667080; --accent:#e8472a; --hover:#f1f3f6; --field:#f7f8fa; --side:232px; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font:14px/1.5 "Segoe UI","Yu Gothic UI",sans-serif; overflow:hidden; }
+  header { height:48px; display:flex; align-items:center; gap:10px; padding:0 12px; white-space:nowrap;
+    background:var(--panel); border-bottom:1px solid var(--line); }
+  header h1 { font-size:15px; margin:0 8px 0 0; font-weight:600; }
+  select, button { background:var(--field); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:5px 10px; font:inherit; cursor:pointer; }
+  button:hover { border-color:#a9b0bc; background:var(--hover); }
+  button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .spacer { flex:1; }
+  #info { color:var(--sub); font-variant-numeric:tabular-nums; min-width:220px; text-align:right; font-size:12px; }
+  #scaleInfo { color:var(--sub); font-size:12px; }
+  #scaleInfo b { color:var(--text); font-weight:600; }
+  #scaleInfo .tag { margin-left:6px; padding:1px 6px; border-radius:4px; background:#fff1d6; color:#9a6200; }
+  #scaleInfo .tag.ok { background:#dcf5e5; color:#16733b; }
+  #calPanel { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--sub); }
+  #calPanel[hidden] { display:none; }
+  #scopePanel { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--sub); }
+  #scopePanel[hidden] { display:none; }
+  #scopeBtns { display:inline-flex; gap:3px; }
+  #scopeBtns button { padding:3px 7px; font-size:12px; }
+  input[type=number] { width:80px; background:var(--field); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:4px 6px; font:inherit; }
+  label.size { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--sub); }
+
+  aside { position:absolute; top:48px; left:0; bottom:0; width:var(--side); overflow-y:auto;
+    background:var(--panel); border-right:1px solid var(--line); padding:12px; }
+  aside h2 { font-size:12px; color:var(--sub); font-weight:600; margin:14px 0 6px; letter-spacing:.04em; }
+  aside h2:first-child { margin-top:0; }
+  .squad { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:6px; cursor:pointer; border:1px solid transparent; }
+  .squad:hover { background:var(--hover); }
+  .squad.active { border-color:var(--squad); background:var(--hover); }
+  .squad .dot { width:14px; height:14px; border-radius:50%; background:var(--squad); flex:none; }
+  .squad .name { flex:1; }
+  .squad .count { color:var(--sub); font-size:12px; }
+  .squad .del { visibility:hidden; background:none; border:none; padding:0 4px; color:var(--sub); }
+  .squad:hover .del { visibility:visible; }
+  .row { display:flex; gap:6px; margin-top:6px; }
+  .row button { flex:1; font-size:12px; padding:4px 6px; }
+  .cls { font-size:11px; color:var(--sub); margin:8px 0 4px; }
+  .legends { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+  .leg { aspect-ratio:1; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--text); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:0;
+    font-size:12px; font-weight:600; }
+  .leg img { width:80%; height:80%; object-fit:contain; }
+  .leg.face img { width:100%; height:100%; object-fit:cover; }
+  .leg.on { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+  .leg.skillon { border-color:#3fa9ff; box-shadow:0 0 0 2px #3fa9ff inset; }
+  .ctx { position:fixed; z-index:20; width:290px; background:#fff; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18); padding:6px; }
+  .ctx[hidden] { display:none; }
+  .ctx-head { font-size:12px; color:var(--sub); font-weight:600; padding:4px 8px 6px; }
+  .ab { display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:1px solid transparent;
+    background:none; border-radius:8px; padding:6px 8px; }
+  .ab:hover:not(:disabled) { background:var(--hover); border-color:var(--line); }
+  .ab img { width:34px; height:34px; flex:none; }
+  .ab .meta { display:flex; flex-direction:column; line-height:1.3; min-width:0; }
+  .ab .meta small { font-size:11px; color:var(--sub); }
+  .ab .meta b { font-size:13px; font-weight:600; }
+  .ab.iconly img { opacity:.45; }
+  .ab.iconly .meta small:last-child { color:#9a6200; }
+  .skill .skill-icon, .skill .skill-rot, .skill .seg-end { cursor:move; }
+  .skill .skill-rot { cursor:alias; }
+  .aim-handle { cursor:crosshair; }
+  .aim { pointer-events:none; }
+  .tip.legal { border-top:1px solid var(--line); padding-top:8px; font-size:10px; }
+  .tip { font-size:11px; color:var(--sub); margin-top:12px; line-height:1.6; }
+
+  #stage { position:absolute; top:48px; left:var(--side); right:0; bottom:0; }
+  svg#board { width:100%; height:100%; display:block; cursor:grab; user-select:none; }
+  svg#board.panning { cursor:grabbing; }
+  svg#board.measure, svg#board.placing { cursor:crosshair; }
+  .pawn { cursor:move; }
+  .handle { cursor:alias; }
+  #scalebar { position:absolute; left:16px; bottom:16px; padding:6px 10px; background:rgba(255,255,255,.9); box-shadow:0 1px 3px rgba(0,0,0,.2);
+    border-radius:6px; font-size:12px; color:var(--sub); pointer-events:none; }
+  #scalebar .bar { height:4px; background:var(--text); margin-bottom:4px; }
+  #timeline { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.96); padding:6px 8px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+  #timeline .lbl { font-size:12px; color:var(--sub); margin:0 2px 0 4px; }
+  #steps { display:flex; gap:4px; }
+  #steps .st { min-width:32px; padding:4px 8px; font-weight:600; }
+  #steps .st.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  #timeline .sep { width:1px; height:22px; background:var(--line); margin:0 2px; }
+  .ringrow { display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; border:1px solid transparent; cursor:pointer; font-size:13px; }
+  .ringrow:hover { background:var(--hover); }
+  #planPanel { position:fixed; top:52px; z-index:30; width:340px; background:#fff; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18); padding:12px; }
+  #planPanel[hidden] { display:none; }
+  #planPanel h3 { font-size:12px; color:var(--sub); margin:0 0 6px; font-weight:600; }
+  #planPanel .saverow { display:flex; gap:6px; margin-bottom:12px; }
+  #planPanel input[type=text] { flex:1; min-width:0; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px 8px; font:inherit; color:var(--text); }
+  #planList { max-height:260px; overflow-y:auto; margin-bottom:12px; border:1px solid var(--line); border-radius:8px; }
+  #planList .empty { padding:10px; font-size:12px; color:var(--sub); }
+  .plan { display:flex; align-items:center; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line); }
+  .plan:last-child { border-bottom:none; }
+  .plan .pn { flex:1; min-width:0; }
+  .plan .pn b { display:block; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plan .pn small { font-size:11px; color:var(--sub); }
+  .plan button { font-size:11px; padding:3px 7px; }
+  .plan .x { background:none; border:none; color:var(--sub); }
+  #planPanel .filerow { display:flex; gap:6px; }
+  #planPanel .filerow button { flex:1; font-size:12px; }
+  #planPanel .note { font-size:11px; color:var(--sub); margin-top:8px; line-height:1.5; }
+  .ringtpl { display:flex; align-items:center; gap:3px; margin:0 0 6px; font-size:11px; color:var(--sub); }
+  .ringtpl span { margin-right:2px; }
+  .ringtpl button { padding:2px 4px; font-size:11px; flex:1; min-width:0; }
+  .ringtpl button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .ringrow.active { border-color:var(--line); background:var(--hover); }
+  .ringrow.placing { border-color:var(--accent); }
+  .ringrow .sw { width:14px; height:14px; border-radius:50%; flex:none; box-sizing:border-box; }
+  .ringrow .nm { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; min-width:0; }
+  .ringrow .rv { color:var(--sub); font-size:11px; }
+  .ringrow button { font-size:11px; padding:2px 6px; white-space:nowrap; flex:none; }
+  .ringrow .del { background:none; border:none; color:var(--sub); padding:0 2px; }
+  .ringrow .del[hidden] { display:none; }
+  #ringLayer { pointer-events:none; }
+  #ringLayer .ring-handle { pointer-events:all; cursor:move; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Apex 戦術ボード</h1>
+  <select id="mapSel"></select>
+  <button id="planBtn" title="作戦の保存・読み込み">作戦 ▾</button>
+  <button id="measureBtn" title="M">距離を測る</button>
+  <button id="fitBtn" title="F">全体表示</button>
+  <label class="size">ポーン <input id="sizeInput" type="range" min="14" max="56" step="2"></label>
+  <span id="scaleInfo"></span>
+  <span id="calPanel" hidden>
+    ゲーム内実測値 <input id="calInput" type="number" min="1" step="0.1"> m
+    <button id="calApply">スケール補正</button>
+  </span>
+  <button id="calReset" title="このマップの補正を既定値に戻す">補正リセット</button>
+  <button id="calExport" title="現在のスケールを maps.json として保存">maps.json 書き出し</button>
+  <span id="scopePanel" hidden>スコープ <span id="scopeBtns"></span></span>
+  <span class="spacer"></span>
+  <span id="info">—</span>
+</header>
+
+<div id="planPanel" hidden>
+  <h3>今の盤面を保存（このマップ）</h3>
+  <div class="saverow"><input id="planName" type="text" maxlength="40" placeholder="作戦名（例：R3 北側ローテ）"><button id="planSave">保存</button></div>
+  <h3>保存した作戦</h3>
+  <div id="planList"></div>
+  <h3>ファイル</h3>
+  <div class="filerow">
+    <button id="planExport" title="今の盤面を .json ファイルとして保存">ファイルに書き出し</button>
+    <button id="planImport" title=".json ファイルから読み込み">ファイルから読み込み</button>
+    <input id="planFile" type="file" accept=".json,application/json" hidden>
+  </div>
+  <div class="note">保存・読み込みの対象は、全ステップ・部隊・リングです。読み込むと今の盤面は置き換わります。別のマップの作戦を読み込むと、そのマップに切り替わります。</div>
+</div>
+
+<aside>
+  <h2>リング（このステップ）</h2>
+  <div id="ringList"></div>
+  <h2>部隊</h2>
+  <div id="squadList"></div>
+  <div class="row">
+    <button id="addSquad">＋ 部隊を追加</button>
+    <button id="clearBoard" title="表示中のステップのポーン・スキル・リングを消す">ステップを消去</button>
+  </div>
+  <h2>レジェンド</h2>
+  <div id="legendList"></div>
+  <div class="tip">
+    レジェンドを選んでマップをクリックで配置（選択中の部隊に追加、Ctrl＋クリックで続けて配置）<br>部隊名はダブルクリックで変更<br>
+    ドラッグ：移動 ／ Shift＋ドラッグ：部隊ごと移動<br>
+    選択中：白い丸をドラッグで向き、Q/Eで45°回転、Dでダウン切替、Deleteで削除<br>
+    射線：選択中のポーン横の照準（⊕）をドラッグ、Xで消去<br>
+    <b>スキル</b>：レジェンドを右クリック→スキルを選び、マップを押したままドラッグで向き／長さ（色は選択中の部隊）。範囲データのないスキルはアイコンのみ<br>
+    <b>リング</b>：R1〜R6 で現在／次／次の次（緑）を規定の半径で配置（R1は現在のリングを置かず、置いてあればその内側に収める。R6の次は半径1mの収縮中心）。分からない円は ✕ で消す。前のラウンドから進めると位置を繰り上げて引き継ぐ。「配置」→ドラッグで手動でも置ける（次の次＝リングコンソールで分かる緑の円）。行をクリックで中心・半径のハンドルを表示<br>
+    <b>ステップ</b>：下のバーで切替（←/→キー）、＋で今の状態を複製して追加、▶ で補間再生（Space）<br>
+    ホイール：ズーム ／ M：距離測定→実測値で補正 ／ 右クリック：配置解除 ／ F：全体表示
+  </div>
+  <div class="tip legal">非公式のファンメイドツールです。Electronic Arts／Respawn Entertainment とは関係がなく、承認も受けていません。ゲームの名称・画像の権利は各権利者に帰属します。数値は推定を含み、無保証です。</div>
+</aside>
+
+<div id="stage">
+  <svg id="board" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="pawnClip" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs>
+    <g id="world">
+      <image id="mapImg" x="0" y="0" preserveAspectRatio="none"/>
+      <g id="ringLayer"></g>
+      <g id="skillLayer"></g>
+      <g id="aimLayer"></g>
+      <g id="pawnLayer"></g>
+      <g id="measureLayer"></g>
+    </g>
+  </svg>
+  <div id="scalebar"><div class="bar"></div><span></span></div>
+  <div id="timeline">
+    <span class="lbl">ステップ</span>
+    <button id="prevStep" title="前のステップ（←）">◀</button>
+    <span id="steps"></span>
+    <button id="nextStep" title="次のステップ（→）">▶</button>
+    <span class="sep"></span>
+    <button id="addStep" title="今のステップを複製して次に追加">＋ 追加</button>
+    <button id="delStep" title="このステップを削除">削除</button>
+    <span class="sep"></span>
+    <button id="playBtn" title="最初（または今のステップ）から再生（Space）">▶ 再生</button>
+  </div>
+</div>
+
+<script>
+// ===================== マップ定義とスケール補正 =====================
+// baseMetersPerPx：最初に決めた値 ／ scaleFactor：補正倍率 ／ calibrated：ゲーム内で実測して補正済みか
+// 実際に使うスケール = baseMetersPerPx × scaleFactor（画面の「スケール補正」で上書きでき、ブラウザに保存される）
+const MAPS = [
+  { id:"worlds_edge", name:"World's Edge", image:"maps/worlds_edge.jpg", widthPx:1206, heightPx:1526, baseMetersPerPx:2.3,  scaleFactor:0.888, calibrated:false },
+  { id:"storm_point", name:"Storm Point",  image:"maps/storm_point.jpg", widthPx:1206, heightPx:1186, baseMetersPerPx:2.38, scaleFactor:0.888, calibrated:false },
+  { id:"e_district",  name:"E-District",   image:"maps/e_district.jpg",  widthPx:1106, heightPx:1099, baseMetersPerPx:2.25, scaleFactor:0.888, calibrated:true  },
+  { id:"broken_moon", name:"Broken Moon",  image:"maps/broken_moon.jpg", widthPx:1130, heightPx:1129, baseMetersPerPx:2.30, scaleFactor:0.888, calibrated:false },
+];
+const CAL_KEY = "apexBoard.calibration";
+function loadCalibration() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(CAL_KEY) || "{}"); } catch (e) {}
+  for (const m of MAPS) {
+    m.defaultFactor = m.scaleFactor; m.defaultCalibrated = m.calibrated;
+    if (saved[m.id]) { m.scaleFactor = saved[m.id].scaleFactor; m.calibrated = saved[m.id].calibrated; }
+    m.metersPerPx = m.baseMetersPerPx * m.scaleFactor;
+  }
+}
+function saveCalibration() {
+  const out = {};
+  for (const m of MAPS) if (m.scaleFactor !== m.defaultFactor || m.calibrated !== m.defaultCalibrated)
+    out[m.id] = { scaleFactor: m.scaleFactor, calibrated: m.calibrated };
+  try { localStorage.setItem(CAL_KEY, JSON.stringify(out)); } catch (e) {}
+}
+loadCalibration();
+
+// ===================== レジェンド =====================
+// アイコンは icons/<id>.svg（fetch_icons.py で取得）。無ければ頭文字で表示。
+const LEGENDS = [{"id": "alter", "name": "Alter", "class": "Skirmisher"}, {"id": "ash", "name": "Ash", "class": "Skirmisher"}, {"id": "axle", "name": "Axle", "class": "Skirmisher"}, {"id": "ballistic", "name": "Ballistic", "class": "Assault"}, {"id": "bangalore", "name": "Bangalore", "class": "Assault"}, {"id": "bloodhound", "name": "Bloodhound", "class": "Recon"}, {"id": "catalyst", "name": "Catalyst", "class": "Controller"}, {"id": "caustic", "name": "Caustic", "class": "Controller"}, {"id": "conduit", "name": "Conduit", "class": "Support"}, {"id": "crypto", "name": "Crypto", "class": "Recon"}, {"id": "fuse", "name": "Fuse", "class": "Assault"}, {"id": "gibraltar", "name": "Gibraltar", "class": "Support"}, {"id": "horizon", "name": "Horizon", "class": "Skirmisher"}, {"id": "lifeline", "name": "Lifeline", "class": "Support"}, {"id": "loba", "name": "Loba", "class": "Support"}, {"id": "mad_maggie", "name": "Mad Maggie", "class": "Assault"}, {"id": "mirage", "name": "Mirage", "class": "Support"}, {"id": "newcastle", "name": "Newcastle", "class": "Support"}, {"id": "octane", "name": "Octane", "class": "Skirmisher"}, {"id": "pathfinder", "name": "Pathfinder", "class": "Skirmisher"}, {"id": "rampart", "name": "Rampart", "class": "Controller"}, {"id": "revenant", "name": "Revenant", "class": "Assault"}, {"id": "seer", "name": "Seer", "class": "Recon"}, {"id": "sparrow", "name": "Sparrow", "class": "Recon"}, {"id": "valkyrie", "name": "Valkyrie", "class": "Recon"}, {"id": "vantage", "name": "Vantage", "class": "Recon"}, {"id": "wattson", "name": "Wattson", "class": "Controller"}, {"id": "wraith", "name": "Wraith", "class": "Skirmisher"}];
+const CLASS_ORDER = [["Assault","アサルト"],["Skirmisher","スカーミッシャー"],["Recon","リコン"],["Support","サポート"],["Controller","コントローラー"]];
+const SQUAD_COLORS = ["#3fa9ff","#ff5a3c","#ffd23f","#9b6bff","#3fdc8f","#ff6fb5","#ff9f3f","#36d6d6","#c8c8c8","#8bc34a"];
+const legendById = Object.fromEntries(LEGENDS.map(l => [l.id, l]));
+// 表示に使う画像の優先順：切り抜いた顔画像 → SVGアイコン（無ければ英字3文字）
+function iconSources(id) { return [`icons/faces/${id}.png`, `icons/${id}.svg`]; }
+function initials(name) { const w = name.split(" "); return (w.length > 1 ? w[0][0] + w[1][0] : name.slice(0, 3)).toUpperCase(); } // BAL/BAN, CAT/CAU, VAL/VAN を区別
+
+// ===================== 共通 =====================
+const svg = document.getElementById("board");
+const world = document.getElementById("world");
+const mapImg = document.getElementById("mapImg");
+const pawnLayer = document.getElementById("pawnLayer");
+const skillLayer = document.getElementById("skillLayer");
+const aimLayer = document.getElementById("aimLayer");
+const ringLayer = document.getElementById("ringLayer");
+const measureLayer = document.getElementById("measureLayer");
+const info = document.getElementById("info");
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; }
+function store(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+function restore(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+
+let map = MAPS[0];
+let view = { x:0, y:0, scale:1 }; // scale = 画面px / m（ワールド座標はメートル、原点はマップ画像の左上）
+let pawnSize = restore("apexBoard.pawnSize", 28);
+
+function mapSizeM() { return { w: map.widthPx * map.metersPerPx, h: map.heightPx * map.metersPerPx }; }
+function toWorld(cx, cy) { const r = svg.getBoundingClientRect(); return { x:(cx - r.left - view.x) / view.scale, y:(cy - r.top - view.y) / view.scale }; }
+
+function applyView() {
+  world.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.scale})`);
+  measureLayer.querySelectorAll("[data-px]").forEach(n => n.setAttribute(n.dataset.attr, n.dataset.px / view.scale));
+  pawnLayer.querySelectorAll(".pawn").forEach(placePawnEl);
+  skillLayer.querySelectorAll(".sc").forEach(placeSc);
+  aimLayer.querySelectorAll(".sc").forEach(placeSc);
+  ringLayer.querySelectorAll(".sc").forEach(placeSc);
+  updateScalebar();
+}
+function fit() {
+  const r = svg.getBoundingClientRect(), s = mapSizeM(), pad = 24;
+  view.scale = Math.min((r.width - pad*2) / s.w, (r.height - pad*2) / s.h);
+  view.x = (r.width - s.w * view.scale) / 2;
+  view.y = (r.height - s.h * view.scale) / 2;
+  applyView();
+}
+
+// ===================== ボードの状態（マップごとに保存） =====================
+// board = { squads:[{id,name,color}], pawns:[{id,legend,squad,x,y,dir,down,aim:{dx,dy}}], skills:[{id,legend,slot,squad,x,y,dir,ex,ey}] }  x,y はメートル、dir は度（0=上、時計回り）
+let board, activeSquad = null, selected = null, placingLegend = null;
+const boardKey = () => "apexBoard.board." + map.id;
+function newId() { return Math.random().toString(36).slice(2, 9); }
+function defaultBoard() {
+  return { squads: [
+    { id:newId(), name:"味方", color:SQUAD_COLORS[0] },
+    { id:newId(), name:"敵A", color:SQUAD_COLORS[1] },
+    { id:newId(), name:"敵B", color:SQUAD_COLORS[2] },
+  ], steps: [{ pawns: [], skills: [], ring: {} }], cur: 0 };
+}
+function saveBoard() { syncStep(); store(boardKey(), { squads:board.squads, steps:board.steps, cur:board.cur }); }
+function loadBoard() {
+  const raw = restore(boardKey(), null) || defaultBoard();
+  if (!raw.steps) raw.steps = [{ pawns: raw.pawns || [], skills: raw.skills || [], ring: {} }]; // 旧形式（ステップなし）から移行
+  board = { squads: raw.squads, steps: raw.steps, cur: raw.cur || 0 };
+  useStep(board.cur);
+  activeSquad = board.squads[0]?.id || null;
+  selected = null; activeRing = null; ringPlacing = null;
+  renderAll();
+}
+
+// ===================== 部隊リスト =====================
+function renderSquads() {
+  const list = document.getElementById("squadList");
+  list.replaceChildren();
+  for (const sq of board.squads) {
+    const n = board.pawns.filter(p => p.squad === sq.id).length;
+    const row = document.createElement("div");
+    row.className = "squad" + (sq.id === activeSquad ? " active" : "");
+    row.style.setProperty("--squad", sq.color);
+    row.innerHTML = `<span class="dot"></span><span class="name"></span><span class="count">${n}/3</span><button class="del" title="部隊を削除">✕</button>`;
+    row.querySelector(".name").textContent = sq.name;
+    row.addEventListener("click", () => { activeSquad = sq.id; renderSquads(); });
+    row.addEventListener("dblclick", () => {
+      const name = window.prompt("部隊名", sq.name);
+      if (name) { sq.name = name.trim().slice(0, 12) || sq.name; saveBoard(); renderSquads(); }
+    });
+    row.querySelector(".del").addEventListener("click", e => {
+      e.stopPropagation();
+      if (board.steps.some(st => (st.pawns || []).some(x => x.squad === sq.id) || (st.skills || []).some(x => x.squad === sq.id))
+          && !window.confirm(`${sq.name} とそのポーン・スキルを全ステップから削除しますか？`)) return;
+      board.squads = board.squads.filter(s => s.id !== sq.id);
+      for (const st of board.steps) { // 全ステップから削除
+        st.pawns = (st.pawns || []).filter(p => p.squad !== sq.id);
+        st.skills = (st.skills || []).filter(p => p.squad !== sq.id);
+      }
+      useStep(board.cur);
+      if (activeSquad === sq.id) activeSquad = board.squads[0]?.id || null;
+      saveBoard(); renderSquads(); renderPawns(); renderSkills();
+    });
+    list.append(row);
+  }
+}
+document.getElementById("addSquad").addEventListener("click", () => {
+  const used = new Set(board.squads.map(s => s.color));
+  const color = SQUAD_COLORS.find(c => !used.has(c)) || SQUAD_COLORS[board.squads.length % SQUAD_COLORS.length];
+  const enemyCount = board.squads.filter(s => s.name.startsWith("敵")).length;
+  const sq = { id:newId(), name:"敵" + String.fromCharCode(65 + enemyCount), color };
+  board.squads.push(sq); activeSquad = sq.id; saveBoard(); renderSquads();
+});
+document.getElementById("clearBoard").addEventListener("click", () => {
+  if (!(board.pawns.length || board.skills.length || Object.keys(board.ring).length)
+      || !window.confirm(`ステップ ${board.cur + 1} のポーン・スキル・リングを消去しますか？`)) return;
+  board.pawns = []; board.skills = []; board.ring = {}; selected = null; activeRing = null; saveBoard(); renderAll();
+});
+
+// ===================== レジェンド一覧 =====================
+function renderLegends() {
+  const box = document.getElementById("legendList");
+  for (const [cls, label] of CLASS_ORDER) {
+    const h = document.createElement("div"); h.className = "cls"; h.textContent = label; box.append(h);
+    const grid = document.createElement("div"); grid.className = "legends"; box.append(grid);
+    for (const l of LEGENDS.filter(x => x.class === cls)) {
+      const b = document.createElement("button");
+      b.className = "leg"; b.title = l.name; b.dataset.id = l.id;
+      const img = new Image(); img.alt = "";
+      const srcs = iconSources(l.id); let i = 0; img.src = srcs[0];
+      img.onerror = () => { if (++i < srcs.length) img.src = srcs[i]; else { img.remove(); b.textContent = initials(l.name); } };
+      img.onload = () => b.classList.toggle("face", img.src.includes("/faces/"));
+      b.append(img);
+      b.addEventListener("click", () => setPlacing(placingLegend === l.id ? null : l.id));
+      b.addEventListener("contextmenu", e => { e.preventDefault(); openSkillMenu(l.id, b); });
+      grid.append(b);
+    }
+  }
+}
+function setPlacing(id) {
+  placingLegend = id;
+  if (id) { setMeasuring(false); if (typeof placingSkill !== "undefined" && placingSkill) setPlacingSkill(null); }
+  document.querySelectorAll(".leg").forEach(b => b.classList.toggle("on", b.dataset.id === id));
+  svg.classList.toggle("placing", !!id || (typeof placingSkill !== "undefined" && !!placingSkill));
+}
+
+// ===================== ポーン描画 =====================
+function squadOf(p) { return board.squads.find(s => s.id === p.squad); }
+function renderPawns() {
+  pawnLayer.replaceChildren();
+  for (const p of board.pawns) pawnLayer.append(buildPawnEl(p));
+  renderAims();
+}
+// ---- 射線（ポーンから伸ばすベクトル線）----
+// p.aim = {dx,dy}（ポーンからの相対位置、メートル）。選択中のポーンには照準ハンドルを出す。
+function renderAims() {
+  aimLayer.replaceChildren();
+  for (const p of board.pawns) {
+    const sq = squadOf(p), color = sq ? sq.color : "#888";
+    if (p.aim) {
+      const ex = p.x + p.aim.dx, ey = p.y + p.aim.dy, len = Math.hypot(p.aim.dx, p.aim.dy);
+      const g = el("g", { class:"aim", "data-id":p.id, opacity:p.__op ?? 1 });
+      g.append(el("line", { x1:p.x, y1:p.y, x2:ex, y2:ey, stroke:"#fff", "stroke-width":5, "stroke-linecap":"round", "vector-effect":"non-scaling-stroke", opacity:.85 }));
+      g.append(el("line", { x1:p.x, y1:p.y, x2:ex, y2:ey, stroke:color, "stroke-width":2.5, "stroke-linecap":"round", "vector-effect":"non-scaling-stroke" }));
+      const tip = scEl(ex, ey), ang = Math.atan2(p.aim.dx, -p.aim.dy) * 180 / Math.PI;
+      tip.append(el("path", { d:"M-9 8 L0 -10 L9 8 Z", fill:color, stroke:"#fff", "stroke-width":2, transform:`rotate(${ang})` }));
+      const lab = scEl((p.x + ex) / 2, (p.y + ey) / 2), t = el("text", { y:-8, "text-anchor":"middle", "font-size":12, "font-weight":700, fill:"#1d2129", "paint-order":"stroke", stroke:"#fff", "stroke-width":4 });
+      t.textContent = `${len.toFixed(0)} m`; lab.append(t);
+      g.append(tip, lab);
+      aimLayer.append(g);
+    }
+    if (selected === p.id) {
+      // 照準ハンドル：射線があればその先端、無ければポーンの右横（画面上で一定距離）
+      const h = scEl(p.aim ? p.x + p.aim.dx : p.x, p.aim ? p.y + p.aim.dy : p.y);
+      const ox = p.aim ? 0 : pawnSize * 0.5 + 22;
+      const cross = el("g", { class:"aim-handle", transform:`translate(${ox},0)` });
+      cross.append(el("circle", { r:10, fill:"#fff", stroke:color, "stroke-width":3 }));
+      cross.append(el("path", { d:"M-6 0 H6 M0 -6 V6", stroke:"#1d2129", "stroke-width":2 }));
+      const title = el("title"); title.textContent = "ドラッグで射線を引く（Xで消去）"; cross.append(title);
+      h.append(cross);
+      aimLayer.append(h);
+    }
+  }
+  aimLayer.querySelectorAll(".sc").forEach(placeSc);
+}
+function buildPawnEl(p) {
+  const sq = squadOf(p), color = sq ? sq.color : "#888", R = 50; // 内部は半径50の座標系で描き、表示時に縮める
+  const g = el("g", { class:"pawn", "data-id":p.id });
+  // 向き（円の外側に伸びる矢じり）
+  const dirG = el("g", { class:"dir", transform:`rotate(${p.dir || 0})` });
+  dirG.append(el("path", { d:`M -22 ${-R+6} L 0 ${-R-26} L 22 ${-R+6} Z`, fill:color, stroke:"#fff", "stroke-width":5, "stroke-linejoin":"round" }));
+  g.append(dirG);
+  g.append(el("circle", { r:R+5, fill:"none", stroke:"#fff", "stroke-width":4 }));
+  g.append(el("circle", { r:R, fill:"#fff", stroke:color, "stroke-width":10 }));
+  const srcs = iconSources(p.legend); let si = 0;
+  const faceBox = { x:-R+5, y:-R+5, width:(R-5)*2, height:(R-5)*2 }, svgBox = { x:-R+10, y:-R+10, width:(R-10)*2, height:(R-10)*2 };
+  const img = el("image", { ...faceBox, href:srcs[0], "clip-path":"url(#pawnClip)", preserveAspectRatio:"xMidYMid slice" });
+  const txt = el("text", { y:11, "text-anchor":"middle", fill:"#1d2129", "font-size":30, "font-weight":700 });
+  txt.textContent = initials(legendById[p.legend]?.name || "?");
+  txt.style.display = "none";
+  img.addEventListener("error", () => {
+    if (++si < srcs.length) { for (const k in svgBox) img.setAttribute(k, svgBox[k]); img.setAttribute("href", srcs[si]); }
+    else { img.remove(); txt.style.display = ""; }
+  });
+  g.append(img, txt);
+  if (p.down) {
+    g.append(el("circle", { r:R, fill:"rgba(255,255,255,.55)" }));
+    g.append(el("path", { d:"M -24 -24 L 24 24 M 24 -24 L -24 24", stroke:"#ff4d4d", "stroke-width":11, "stroke-linecap":"round" }));
+  }
+  if (selected === p.id) {
+    g.append(el("circle", { r:R+14, fill:"none", stroke:"#fff", "stroke-width":6, "stroke-dasharray":"12 9" }));
+    const h = el("circle", { class:"handle", r:11, cy:-R-58, fill:"#fff", stroke:"#1d2129", "stroke-width":4, transform:`rotate(${p.dir || 0})` });
+    g.append(h);
+  }
+  g.__pawn = p;
+  if (p.__op !== undefined) g.setAttribute("opacity", p.__op);
+  placePawnEl(g);
+  return g;
+}
+function placePawnEl(g) {
+  const p = g.__pawn, k = pawnSize / 100 / view.scale; // 直径 pawnSize px で画面上一定
+  g.setAttribute("transform", `translate(${p.x},${p.y}) scale(${k})`);
+}
+function refreshPawn(p) {
+  const old = pawnLayer.querySelector(`[data-id="${p.id}"]`);
+  if (old) old.replaceWith(buildPawnEl(p));
+}
+function updateScopePanel() {
+  const sk = board.skills.find(x => x.id === selected);
+  const k = sk && skillKind(abilityOf(sk));
+  const panel = document.getElementById("scopePanel");
+  panel.hidden = !(k && k.kind === "seer");
+  if (panel.hidden) return;
+  const box = document.getElementById("scopeBtns"); box.replaceChildren();
+  for (const sc of k.scopes) {
+    const b = document.createElement("button");
+    b.textContent = sc.zoom + "倍"; b.title = `${sc.range_m}m・${sc.angle_deg}°`;
+    b.classList.toggle("on", (sk.scope || 1) === sc.zoom);
+    b.addEventListener("click", () => { sk.scope = sc.zoom; saveBoard(); refreshSkill(sk); updateScopePanel(); });
+    box.append(b);
+  }
+}
+function select(id) {
+  const prev = selected; selected = id;
+  for (const pid of [prev, id]) {
+    const p = board.pawns.find(x => x.id === pid); if (p) { refreshPawn(p); renderAims(); }
+    const s = board.skills.find(x => x.id === pid); if (s) refreshSkill(s);
+  }
+  updateScopePanel();
+}
+
+// ===================== 操作 =====================
+let drag = null;
+svg.addEventListener("pointerdown", e => {
+  if (e.button === 2) return;
+  const pt = toWorld(e.clientX, e.clientY);
+  if (playing) { drag = { type:"pan", sx:e.clientX, sy:e.clientY, vx:view.x, vy:view.y }; svg.setPointerCapture(e.pointerId); return; }
+  const rh = e.target.closest(".ring-handle");
+  if (rh) { drag = { type:"ring", key:rh.dataset.ring, part:rh.dataset.part, start:pt, c0:{ ...board.ring[rh.dataset.ring] } }; svg.setPointerCapture(e.pointerId); return; }
+  if (ringPlacing) {
+    board.ring[ringPlacing] = { x:pt.x, y:pt.y, r:1 };
+    drag = { type:"ringplace", key:ringPlacing, start:pt, moved:false };
+    svg.setPointerCapture(e.pointerId); return;
+  }
+  const handle = e.target.closest(".handle");
+  const pawnG = e.target.closest(".pawn");
+  const skillG = e.target.closest(".skill");
+
+  if (measuring && e.button === 0) { addMeasurePoint(pt); return; }
+
+  if (placingSkill) {
+    if (!activeSquad) { window.alert("先に部隊を追加してください"); return; }
+    const s = { id:newId(), legend:placingSkill.legend, slot:placingSkill.slot, squad:activeSquad, x:pt.x, y:pt.y, dir:0 };
+    board.skills.push(s); select(s.id); skillLayer.append(buildSkillEl(s));
+    drag = { type:"aim", skill:s, start:pt, keep:e.ctrlKey };
+    svg.setPointerCapture(e.pointerId);
+    return;
+  }
+  if (e.target.closest(".aim-handle")) {
+    const p = board.pawns.find(x => x.id === selected);
+    if (p) { drag = { type:"aimline", pawn:p }; svg.setPointerCapture(e.pointerId); return; }
+  }
+  if (skillG && !pawnG) {
+    const s = skillG.__skill;
+    if (s.id !== selected) select(s.id);
+    if (e.target.closest(".skill-rot") || e.target.closest(".seg-end")) drag = { type:"aim", skill:s, editing:true };
+    else drag = { type:"skillmove", skill:s, start:pt, x:s.x, y:s.y, moved:false };
+    svg.setPointerCapture(e.pointerId);
+    return;
+  }
+
+  if (placingLegend && !pawnG) {
+    if (!activeSquad) { window.alert("先に部隊を追加してください"); return; }
+    const p = { id:newId(), legend:placingLegend, squad:activeSquad, x:pt.x, y:pt.y, dir:0, down:false };
+    board.pawns.push(p); pawnLayer.append(buildPawnEl(p)); select(p.id);
+    saveBoard(); renderSquads();
+    if (!e.ctrlKey) setPlacing(null); // Ctrl+クリックで連続配置
+    return;
+  }
+
+  if (handle && pawnG) {
+    drag = { type:"rotate", pawn:pawnG.__pawn };
+  } else if (pawnG) {
+    const p = pawnG.__pawn;
+    select(p.id); activeSquad = p.squad; renderSquads();
+    const group = e.shiftKey ? board.pawns.filter(q => q.squad === p.squad) : [p];
+    drag = { type:"move", start:pt, items:group.map(q => ({ p:q, x:q.x, y:q.y })), moved:false };
+  } else {
+    if (selected) select(null);
+    drag = { type:"pan", sx:e.clientX, sy:e.clientY, vx:view.x, vy:view.y };
+    svg.classList.add("panning");
+  }
+  svg.setPointerCapture(e.pointerId);
+});
+svg.addEventListener("pointermove", e => {
+  const p = toWorld(e.clientX, e.clientY), s = mapSizeM();
+  const inside = p.x >= 0 && p.y >= 0 && p.x <= s.w && p.y <= s.h;
+  info.textContent = inside ? `X ${p.x.toFixed(0)} m ／ Y ${p.y.toFixed(0)} m` : "マップ外";
+  if (measuring && measurePts.length === 1) drawMeasure(measurePts[0], p, true);
+  if (!drag) return;
+  if (drag.type === "pan") {
+    view.x = drag.vx + (e.clientX - drag.sx); view.y = drag.vy + (e.clientY - drag.sy); applyView();
+  } else if (drag.type === "move") {
+    const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+    for (const it of drag.items) {
+      it.p.x = it.x + dx; it.p.y = it.y + dy;
+      const g = pawnLayer.querySelector(`[data-id="${it.p.id}"]`); if (g) placePawnEl(g);
+    }
+    renderAims();
+    drag.moved = true;
+  } else if (drag.type === "ring" || drag.type === "ringplace") {
+    const c = board.ring[drag.key];
+    if (drag.type === "ringplace") { c.r = Math.max(1, Math.hypot(p.x - drag.start.x, p.y - drag.start.y)); drag.moved = true; }
+    else if (drag.part === "center") { c.x = drag.c0.x + p.x - drag.start.x; c.y = drag.c0.y + p.y - drag.start.y; }
+    else c.r = Math.max(1, Math.hypot(p.x - c.x, p.y - c.y));
+    // 親の内側に収める（子は自動で追従）
+    const parent = parentRing(drag.key); if (parent) clampRing(c, parent);
+    if (drag.type === "ring") clampRings(); // 置いている最中は子を押し込まない（離した時に収める）
+    renderRing(); renderRingPanel();
+  } else if (drag.type === "aimline") {
+    const q = drag.pawn, dx = p.x - q.x, dy = p.y - q.y;
+    q.aim = { dx, dy };
+    q.dir = Math.round(Math.atan2(dx, -dy) * 180 / Math.PI / 5) * 5; // ポーンの向きも射線に合わせる
+    refreshPawn(q); renderAims(); drag.moved = true;
+  } else if (drag.type === "aim") {
+    aimSkill(drag.skill, p); drag.moved = true; refreshSkill(drag.skill);
+  } else if (drag.type === "skillmove") {
+    drag.skill.x = drag.x + p.x - drag.start.x; drag.skill.y = drag.y + p.y - drag.start.y;
+    skillLayer.querySelector(`[data-id="${drag.skill.id}"]`)?.setAttribute("transform", `translate(${drag.skill.x},${drag.skill.y})`);
+    drag.moved = true;
+  } else if (drag.type === "rotate") {
+    const q = drag.pawn;
+    q.dir = Math.round(Math.atan2(p.x - q.x, -(p.y - q.y)) * 180 / Math.PI / 5) * 5; // 5°刻み
+    refreshPawn(q); renderAims();
+  }
+});
+svg.addEventListener("pointerup", () => {
+  if (drag && drag.type === "ringplace") {
+    const c = board.ring[drag.key], parent = parentRing(drag.key);
+    if (c.r < 5) c.r = parent ? parent.r * 0.5 : 400; // ドラッグなし→既定の半径
+    if (parent) clampRing(c, parent);
+    clampRings(); activeRing = drag.key; setRingPlacing(null); renderRing(); saveBoard();
+  }
+  if (drag && drag.type === "ring") saveBoard();
+  if (drag && drag.type === "aim") {
+    const s = drag.skill, k = skillKind(abilityOf(s));
+    if (k.kind === "segment" && s.ex === undefined) { s.ex = 0; s.ey = -(k.max ?? 50); refreshSkill(s); } // ドラッグなし→上向きに最大長
+    if (k.kind === "rect" && k.adjustable && !drag.moved && !drag.editing) { s.len = k.l; refreshSkill(s); }
+    if (!drag.editing && !drag.keep) setPlacingSkill(null); // Ctrl を押しながらなら続けて配置
+  }
+  if (drag && drag.type === "aimline" && drag.pawn.aim && Math.hypot(drag.pawn.aim.dx, drag.pawn.aim.dy) < 1) { delete drag.pawn.aim; renderAims(); }
+  if (drag && (drag.type === "rotate" || drag.type === "aim" || drag.moved)) saveBoard();
+  drag = null; svg.classList.remove("panning");
+});
+svg.addEventListener("contextmenu", e => { e.preventDefault(); clearMeasure(); setPlacing(null); setPlacingSkill(null); setRingPlacing(null); });
+
+svg.addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = svg.getBoundingClientRect(), cx = e.clientX - r.left, cy = e.clientY - r.top, s = mapSizeM();
+  const minScale = Math.min(r.width / s.w, r.height / s.h) * 0.5;
+  const next = Math.min(Math.max(view.scale * Math.exp(-e.deltaY * 0.0015), minScale), 40);
+  view.x = cx - (cx - view.x) * (next / view.scale);
+  view.y = cy - (cy - view.y) * (next / view.scale);
+  view.scale = next; applyView();
+}, { passive:false });
+
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.key === " ") { e.preventDefault(); play(); return; }
+  if (playing) { if (e.key === "Escape") stop(); return; }
+  if (e.key === "ArrowLeft") { goStep(board.cur - 1); return; }
+  if (e.key === "ArrowRight") { goStep(board.cur + 1); return; }
+  const p = board.pawns.find(x => x.id === selected);
+  const sk = board.skills.find(x => x.id === selected);
+  const k = e.key.toLowerCase();
+  if (k === "m") setMeasuring(!measuring);
+  else if (k === "f") fit();
+  else if (e.key === "Escape") { closePlanPanel(); setMeasuring(false); setPlacing(null); setPlacingSkill(null); setRingPlacing(null); closeSkillMenu(); select(null); activeRing = null; renderRing(); renderRingPanel(); }
+  else if (sk && (e.key === "Delete" || e.key === "Backspace")) {
+    board.skills = board.skills.filter(x => x !== sk); selected = null; saveBoard(); renderSkills(); updateScopePanel();
+  } else if (sk && (k === "q" || k === "e")) { sk.dir = ((sk.dir || 0) + (k === "e" ? 45 : -45) + 360) % 360; saveBoard(); refreshSkill(sk); }
+  else if (p && (e.key === "Delete" || e.key === "Backspace")) {
+    board.pawns = board.pawns.filter(x => x !== p); selected = null; saveBoard(); renderSquads(); renderPawns();
+  } else if (p && k === "d") { p.down = !p.down; saveBoard(); refreshPawn(p); }
+  else if (p && k === "x" && p.aim) { delete p.aim; saveBoard(); renderAims(); }
+  else if (p && (k === "q" || k === "e")) { p.dir = ((p.dir || 0) + (k === "e" ? 45 : -45) + 360) % 360; saveBoard(); refreshPawn(p); }
+});
+
+
+// ===================== スキル =====================
+// 各スキルの描き方を、データ（形・大きさ）から決める。描けないものは null（メニューでグレーアウト）。
+const SKILLS = {"alter":[{"slot":"passive","name":"Gift From The Rift","shape":"circle","radius_m":75,"length_m":null,"width_m":null,"angle_deg":null,"range_m":75,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"75m以内のデスボックスから壁越しにアイテム1つ取得"},{"slot":"tactical","name":"Void Passage","shape":"line","radius_m":null,"length_m":30,"width_m":null,"angle_deg":null,"range_m":null,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"壁・床を貫通するポータル。奥行き最大30m、垂直最大45m"},{"slot":"ultimate","name":"Void Nexus","shape":"point","radius_m":250,"length_m":null,"width_m":null,"angle_deg":null,"range_m":250,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"設置地点へ250m以内から帰還できる装置"}],"ash":[{"slot":"passive","name":"Predator's Pursuit","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"空中ダッシュ（2026/5/5パッチ後の値）"},{"slot":"tactical","name":"Arc Snare","shape":"circle","radius_m":4,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"着地点に拘束トラップ。拘束6秒"},{"slot":"ultimate","name":"Phase Breach","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":75,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"指定地点への一方通行ポータル。最大75m（アップグレードで+25m）"}],"axle":[{"slot":"passive","name":"Drift","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"スライド強化"},{"slot":"tactical","name":"Nitro Gate","shape":"point","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"床に置く加速ゲート。最大2個"},{"slot":"ultimate","name":"Kickstart","shape":"trajectory","radius_m":2.5,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"敵を追尾するドローン。爆発半径2.5m、スタン1.5秒"}],"ballistic":[{"slot":"passive","name":"Sling","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"3つ目の武器スロット"},{"slot":"tactical","name":"Whistler","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":75,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"75mまでロックオンする追尾ダーツ"},{"slot":"ultimate","name":"Tempest","shape":"circle","radius_m":90,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"自身中心90m以内の味方にバフ"}],"bangalore":[{"slot":"passive","name":"Double Time","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"被弾時に移動速度+30%"},{"slot":"tactical","name":"Smoke Launcher","shape":"rect","radius_m":null,"length_m":7,"width_m":25,"angle_deg":null,"range_m":null,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"着弾点に縦7m×横25mのスモーク（横＝発射方向に垂直）。射程は扱わない"},{"slot":"ultimate","name":"Rolling Thunder","shape":"rect","radius_m":null,"length_m":65,"width_m":55,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"フレア前方に縦65m×横55mの爆撃範囲。6秒後に爆発、スタン"}],"bloodhound":[{"slot":"passive","name":"Tracker","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"痕跡を確認。足跡は40m以内"},{"slot":"tactical","name":"Eye of the Allfather","shape":"cone","radius_m":null,"length_m":75,"width_m":null,"angle_deg":125,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"前方125°・75mをスキャン"},{"slot":"ultimate","name":"Allfather's Cloak","shape":"circle","radius_m":2.4,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"投擲して設置する透明化フィールド（現行版。旧Beast of the Huntから変更）"}],"catalyst":[{"slot":"passive","name":"Barricade","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":4,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ドア補強（最大4か所）"},{"slot":"tactical","name":"Piercing Spikes","shape":"rect","radius_m":null,"length_m":2,"width_m":11,"angle_deg":null,"range_m":15,"count":3,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"視線に垂直な横11m×縦2mのスパイク。射程約15m、最大3個"},{"slot":"ultimate","name":"Dark Veil","shape":"line","radius_m":null,"length_m":50,"width_m":null,"angle_deg":null,"range_m":16,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"長さ50m・高さ8mの透過壁。前方最大16mに設置"}],"caustic":[{"slot":"passive","name":"Nox Vision","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ガス内の敵をハイライト"},{"slot":"tactical","name":"Nox Gas Trap","shape":"circle","radius_m":7,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":6,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ガス半径7m。3チャージ、マップ上最大6個"},{"slot":"ultimate","name":"Nox Gas Grenade","shape":"circle","radius_m":7,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ガス半径7m"}],"conduit":[{"slot":"passive","name":"Savior's Speed","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"離れた味方へ向かうときスプリント速度+30%"},{"slot":"tactical","name":"Radiant Transfer","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":50,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"50m以内の味方と自身に一時シールド（2026/6/23パッチ後の値）"},{"slot":"ultimate","name":"Energy Barricade","shape":"line","radius_m":4.5,"length_m":63,"width_m":null,"angle_deg":null,"range_m":null,"count":7,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ジャマー7個（各半径4.5m・直径9m、円が接して並ぶ）で全長63m"}],"crypto":[{"slot":"passive","name":"Neurolink","shape":"circle","radius_m":30,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ドローンの視界30m以内の敵を共有。アップグレードで37.5m"},{"slot":"tactical","name":"Surveillance Drone","shape":"point","radius_m":200,"length_m":null,"width_m":null,"angle_deg":null,"range_m":200,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"Cryptoから最大200mまで飛ばせるドローン"},{"slot":"ultimate","name":"Drone EMP","shape":"circle","radius_m":30,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ドローン中心30mのEMP（3秒溜め）。アップグレードで37.5m"}],"fuse":[{"slot":"passive","name":"Grenadier","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"グレネード所持数+1、投擲が遠く速い"},{"slot":"tactical","name":"Knuckle Cluster","shape":"circle","radius_m":7,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"着弾点の半径7mに小爆発を連続。2チャージ"},{"slot":"ultimate","name":"The Motherlode","shape":"circle","radius_m":3.5,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"主爆発3.5m、散布爆弾は半径2.25m。アップグレードで炎エリア8秒（S28リワーク後の値）"}],"gibraltar":[{"slot":"passive","name":"Gun Shield","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ADS時に50HPのシールド"},{"slot":"tactical","name":"Dome of Protection","shape":"circle","radius_m":6,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"投擲。内部の蘇生33%高速。アップグレードで16秒"},{"slot":"ultimate","name":"Defensive Bombardment","shape":"circle","radius_m":30,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"スモーク地点を中心に爆撃。アップグレードで3チャージ（半径縮小）"}],"horizon":[{"slot":"passive","name":"Spacewalk","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"空中制御向上"},{"slot":"tactical","name":"Gravity Lift","shape":"circle","radius_m":11,"length_m":30,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"半径11m、高さ30mのリフト"},{"slot":"ultimate","name":"Black Hole","shape":"circle","radius_m":10,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"着地2秒後に半径内を引き寄せ"}],"lifeline":[{"slot":"passive","name":"Combat Glide","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"空中滑空。ダウン味方をD.O.Cで蘇生"},{"slot":"tactical","name":"D.O.C. Heal Drone","shape":"circle","radius_m":6,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"半径6m内を8HP/秒で回復。指定した味方に追従"},{"slot":"ultimate","name":"D.O.C. Halo","shape":"circle","radius_m":7,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"半径7mのリング状シールド"}],"loba":[{"slot":"passive","name":"Eye for Quality","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"壁越しに高レア物資を表示（マップには範囲を描かない）"},{"slot":"tactical","name":"Burglar's Best Friend","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":71,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ブレスレットを投げてテレポート。約71m（高所からは100m超）"},{"slot":"ultimate","name":"Black Market Boutique","shape":"circle","radius_m":120,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"半径120mの物資を取得可能"}],"mad_maggie":[{"slot":"passive","name":"Warlord's Ire","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ダメージを与えた敵を0.8秒ハイライト。ショットガン所持で移動速度1.15倍"},{"slot":"tactical","name":"Riot Drill","shape":"line","radius_m":null,"length_m":5,"width_m":null,"angle_deg":null,"range_m":13,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"壁に刺して貫通側に長さ5mの炎。壁の厚さ13mまで"},{"slot":"ultimate","name":"Wrecking Ball","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":120,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"直線で最大120m転がる。0.8秒ごとにスピードパッドを落とし、最大7秒で爆発"}],"mirage":[{"slot":"passive","name":"Now You See Me...","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ダウン時にデコイと透明化"},{"slot":"tactical","name":"Psyche Out","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":true,"notes":"指定方向へ直進するデコイ（射程なし。矢印で進行方向を示す）"},{"slot":"ultimate","name":"Life of the Party","shape":"point","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":6,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"周囲に操作可能なデコイ6体"}],"newcastle":[{"slot":"passive","name":"Retrieve the Wounded","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"移動しながら蘇生"},{"slot":"tactical","name":"Mobile Shield","shape":"line","radius_m":null,"length_m":4,"width_m":null,"angle_deg":null,"range_m":25,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"横4mの移動式シールド。射程25m"},{"slot":"ultimate","name":"Castle Wall","shape":"line","radius_m":null,"length_m":9,"width_m":null,"angle_deg":null,"range_m":35,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"横9mの壁。跳躍先：地点35m／味方まで75m"}],"octane":[{"slot":"passive","name":"Swift Mend","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"自動回復"},{"slot":"tactical","name":"Stim","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"移動速度上昇、HP20消費"},{"slot":"ultimate","name":"Launch Pad","shape":"point","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ジャンプパッド。2チャージ、マップ上最大4個。飛距離の数値は記載なし"}],"pathfinder":[{"slot":"passive","name":"Insider Knowledge","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ケアパッケージ・リングコンソール・ビーコンのスキャンでジップラインのチャージ"},{"slot":"tactical","name":"Grappling Hook","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":21,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"最大21m"},{"slot":"ultimate","name":"Zipline Gun","shape":"line","radius_m":null,"length_m":200,"width_m":null,"angle_deg":null,"range_m":200,"count":4,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"最大約200mのジップライン。最大4本"}],"rampart":[{"slot":"passive","name":"Modded Loader","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"LMG・ミニガン強化"},{"slot":"tactical","name":"Amped Cover","shape":"line","radius_m":null,"length_m":3,"width_m":null,"angle_deg":null,"range_m":null,"count":3,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"しゃがみ高さの横3mの壁。3チャージ"},{"slot":"ultimate","name":"Mobile Minigun \"Sheila\"","shape":"cone","radius_m":null,"length_m":null,"width_m":null,"angle_deg":180,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"設置時の射角は水平180°"}],"revenant":[{"slot":"passive","name":"Assassin's Instinct","shape":"circle","radius_m":30,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"30m以内のHP40以下の敵をハイライト"},{"slot":"tactical","name":"Shadow Pounce","shape":"trajectory","radius_m":null,"length_m":50,"width_m":null,"angle_deg":null,"range_m":50,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"前方跳躍。最小20m〜最大50m（最大3秒チャージ）"},{"slot":"ultimate","name":"Forged Shadows","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"自身に75HPのシャドウ。キルで+5秒（上限25秒）"}],"seer":[{"slot":"passive","name":"Heart Seeker","shape":"cone","radius_m":null,"length_m":75,"width_m":null,"angle_deg":55,"range_m":75,"count":null,"grid":null,"adjustable_length":null,"scopes":[{"zoom":1,"range_m":90,"angle_deg":55},{"zoom":2,"range_m":152,"angle_deg":33},{"zoom":3,"range_m":206,"angle_deg":24},{"zoom":4,"range_m":256,"angle_deg":20},{"zoom":6,"range_m":347,"angle_deg":15},{"zoom":8,"range_m":431,"angle_deg":12},{"zoom":10,"range_m":510,"angle_deg":10}],"directional":null,"notes":"ADS中、75m・55°以内は壁越しに心音を検知（濃い青）。その先は視線が通れば青マーカー（倍率で距離・角度が変化）"},{"slot":"tactical","name":"Focus of Attention","shape":"rect","radius_m":null,"length_m":75,"width_m":8,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":true,"scopes":null,"directional":null,"notes":"前方へ最大75m・幅8mの円柱（長さは0〜75mで調整）。サイレンス2.5秒"},{"slot":"ultimate","name":"Exhibit","shape":"circle","radius_m":38,"length_m":null,"width_m":null,"angle_deg":null,"range_m":50,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"半径38mの球体内で動く敵を表示"}],"sparrow":[{"slot":"passive","name":"Double Jump","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"二段ジャンプ"},{"slot":"tactical","name":"Tracker Dart","shape":"circle","radius_m":12,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":3,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"着弾点の半径12mをスキャン。最大3チャージ"},{"slot":"ultimate","name":"Stinger Bolt","shape":"circle","radius_m":20,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":6,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"着弾点から半径20mに電撃6回（視線が通る敵のみ）"}],"valkyrie":[{"slot":"passive","name":"VTOL Jets","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ジェット飛行（燃料6秒）"},{"slot":"tactical","name":"Missile Swarm","shape":"grid","radius_m":1.5,"length_m":12,"width_m":9,"angle_deg":null,"range_m":125,"count":12,"grid":{"rows":4,"cols":3,"spacing_m":3,"upgrade":{"rows":4,"cols":5}},"adjustable_length":null,"scopes":null,"directional":null,"notes":"縦4×横3の格子、各爆発半径1.5m。横幅9m（実測）＝直径3mの円が接して並ぶ→間隔3m。縦12m・パーク時の横15mは同じ間隔からの推定"},{"slot":"ultimate","name":"Skyward Dive","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"上昇して滑空するだけなので範囲表示なし"}],"vantage":[{"slot":"passive","name":"Spotter's Lens","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":450,"count":3,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"スコープで175〜450m先をスキャン"},{"slot":"tactical","name":"Echo Relocation","shape":"trajectory","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":50,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"相棒Echoを約50m先に飛ばし、そこへ跳ぶ"},{"slot":"ultimate","name":"Sniper's Mark","shape":"line","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":5,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"専用スナイパー。マークは10秒。射程の記載なし"}],"wattson":[{"slot":"passive","name":"Spark of Genius","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"アルティメット促進剤で全回復"},{"slot":"tactical","name":"Perimeter Security","shape":"line","radius_m":null,"length_m":30,"width_m":null,"angle_deg":null,"range_m":null,"count":4,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"ノード間最大30mのフェンス。マップ上最大12ノード"},{"slot":"ultimate","name":"Interception Pylon","shape":"circle","radius_m":25,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":1,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"半径25mの投擲物を迎撃、シールド回復"}],"wraith":[{"slot":"passive","name":"Voices from the Void","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"危険を音声で警告"},{"slot":"tactical","name":"Into the Void","shape":"none","radius_m":null,"length_m":null,"width_m":null,"angle_deg":null,"range_m":null,"count":null,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"虚空移動。アップグレードで6秒"},{"slot":"ultimate","name":"Dimensional Rift","shape":"freeline","radius_m":null,"length_m":152,"width_m":null,"angle_deg":null,"range_m":152,"count":2,"grid":null,"adjustable_length":null,"scopes":null,"directional":null,"notes":"走った経路でポータルを結ぶ。最大約152m"}]};
+const SLOT_LABEL = { passive:"パッシブ", tactical:"戦術", ultimate:"アルティメット" };
+const WALLS = new Set(["Amped Cover", "Mobile Shield", "Castle Wall", "Dark Veil", "Energy Barricade"]); // 置いた点を中心に横へ伸びる壁
+const CENTERED_RECT = new Set(["Smoke Launcher", "Piercing Spikes"]); // 着弾点を中心にした長方形（それ以外は前方へ伸びる）
+function skillKind(a) { return areaKind(a) || { kind:"icon" }; } // 範囲データがないものはアイコンだけ置く
+function areaKind(a) {
+  const r = a.radius_m, l = a.length_m, w = a.width_m, ang = a.angle_deg, rng = a.range_m;
+  switch (a.shape) {
+    case "circle": return r ? { kind:"circle", r } : null;
+    case "cone":
+      if (a.scopes && l && ang) return { kind:"seer", l, ang, scopes:a.scopes };
+      return l && ang ? { kind:"cone", l, ang } : null;
+    case "rect": return l && w ? { kind:"rect", l, w, centered:CENTERED_RECT.has(a.name), adjustable:!!a.adjustable_length } : null;
+    case "grid": return a.grid ? { kind:"grid", ...a.grid, r } : null;
+    case "line":
+      if (!l) return null;
+      return WALLS.has(a.name) ? { kind:"wall", l, jammers: a.name === "Energy Barricade" ? { n:a.count, r } : null } : { kind:"segment", max:l };
+    case "freeline": case "trajectory":
+      if (l || rng) return { kind:"segment", max: l || rng };
+      if (a.directional) return { kind:"segment", max:null }; // 射程なし・直進するもの（方向矢印だけ）
+      return r ? { kind:"circle", r } : null;
+    case "point": return r ? { kind:"circle", r } : null;
+    default: return null;
+  }
+}
+function sizeLabel(k) {
+  switch (k.kind) {
+    case "icon": return "範囲なし（アイコンのみ）";
+    case "circle": return `半径 ${k.r}m`;
+    case "cone": return `${k.l}m・${k.ang}°`;
+    case "seer": return `${k.l}m・${k.ang}°＋スコープ倍率別`;
+    case "rect": return k.adjustable ? `縦 最大${k.l}m×横${k.w}m` : `縦${k.l}×横${k.w}m`;
+    case "grid": return `${k.rows}×${k.cols}（間隔${k.spacing_m}m）`;
+    case "wall": return `幅 ${k.l}m`;
+    case "segment": return k.max ? `最大 ${k.max}m` : "方向（矢印）";
+  }
+}
+function abilityOf(s) { return (SKILLS[s.legend] || []).find(a => a.slot === s.slot); }
+// 向きを持つ形（ドラッグ／ハンドルで回せる）
+const ROTATABLE = new Set(["cone", "seer", "rect", "grid", "wall"]);
+function conePath(l, ang) {
+  const h = ang / 2 * Math.PI / 180, x = Math.sin(h) * l, y = -Math.cos(h) * l;
+  return `M0 0 L${-x} ${y} A${l} ${l} 0 ${ang > 180 ? 1 : 0} 1 ${x} ${y} Z`;
+}
+
+// ---- 右クリックメニュー ----
+const ctx = document.createElement("div");
+ctx.className = "ctx"; ctx.hidden = true; document.body.append(ctx);
+function openSkillMenu(legendId, anchor) {
+  const l = legendById[legendId];
+  ctx.replaceChildren();
+  const head = document.createElement("div"); head.className = "ctx-head"; head.textContent = l.name; ctx.append(head);
+  for (const a of SKILLS[legendId] || []) {
+    const k = skillKind(a);
+    const b = document.createElement("button");
+    b.className = "ab" + (k.kind === "icon" ? " iconly" : "");
+    b.title = (k.kind === "icon" ? "範囲データがないため、使用位置にアイコンだけを置きます。" : "") + (a.notes || "");
+    const img = new Image(); img.src = `icons/${legendId}_${a.slot}.svg`; img.alt = "";
+    img.onerror = () => { img.style.visibility = "hidden"; };
+    const meta = document.createElement("span"); meta.className = "meta";
+    meta.innerHTML = `<small></small><b></b><small></small>`;
+    meta.children[0].textContent = SLOT_LABEL[a.slot];
+    meta.children[1].textContent = a.name;
+    meta.children[2].textContent = sizeLabel(k);
+    b.append(img, meta);
+    b.addEventListener("click", () => { closeSkillMenu(); setPlacingSkill({ legend:legendId, slot:a.slot }); });
+    ctx.append(b);
+  }
+  ctx.hidden = false;
+  const r = anchor.getBoundingClientRect(), cr = ctx.getBoundingClientRect();
+  ctx.style.left = Math.min(r.right + 8, innerWidth - cr.width - 8) + "px";
+  ctx.style.top = Math.max(8, Math.min(r.top, innerHeight - cr.height - 8)) + "px";
+}
+function closeSkillMenu() { ctx.hidden = true; }
+document.addEventListener("pointerdown", e => { if (!ctx.hidden && !ctx.contains(e.target)) closeSkillMenu(); }, true);
+
+let placingSkill = null;
+function setPlacingSkill(s) {
+  placingSkill = s;
+  if (s) { setPlacing(null); setMeasuring(false); }
+  document.querySelectorAll(".leg").forEach(b => b.classList.toggle("skillon", !!s && b.dataset.id === s.legend));
+  svg.classList.toggle("placing", !!(s || placingLegend));
+}
+
+// ---- 描画 ----
+// 形はメートル座標でそのまま描く（線の太さだけ画面上で一定）。アイコンとハンドルは画面上で一定サイズ。
+function scEl(cx, cy) { const g = el("g", { class:"sc" }); g.dataset.cx = cx; g.dataset.cy = cy; return g; }
+function placeSc(g) { g.setAttribute("transform", `translate(${g.dataset.cx},${g.dataset.cy}) scale(${1 / view.scale})`); }
+function renderSkills() {
+  skillLayer.replaceChildren();
+  for (const s of board.skills) skillLayer.append(buildSkillEl(s));
+}
+function buildSkillEl(s) {
+  const a = abilityOf(s), k = a && skillKind(a);
+  const sq = squadOf(s), color = sq ? sq.color : "#888";
+  const g = el("g", { class:"skill" + (selected === s.id ? " sel" : ""), "data-id":s.id, transform:`translate(${s.x},${s.y})` });
+  g.__skill = s;
+  if (s.__op !== undefined) g.setAttribute("opacity", s.__op);
+  const shape = { fill:color, "fill-opacity":.22, stroke:color, "stroke-width":2.5, "vector-effect":"non-scaling-stroke", "pointer-events":"visibleStroke" };
+  const rot = el("g", { transform:`rotate(${s.dir || 0})` });
+  let reach = 0;
+  if (k.kind === "circle") {
+    g.append(el("circle", { r:k.r, ...shape }));
+  } else if (k.kind === "cone") {
+    const h = k.ang / 2 * Math.PI / 180, x = Math.sin(h) * k.l, y = -Math.cos(h) * k.l;
+    rot.append(el("path", { d:`M0 0 L${-x} ${y} A${k.l} ${k.l} 0 ${k.ang > 180 ? 1 : 0} 1 ${x} ${y} Z`, ...shape }));
+    reach = k.l;
+  } else if (k.kind === "seer") {
+    // 外側：選んだスコープ倍率での青マーカー範囲（薄い青）／内側：75m・55°の壁越し検知（濃い青）
+    const sc = k.scopes.find(x => x.zoom === (s.scope || 1)) || k.scopes[0];
+    rot.append(el("path", { d:conePath(sc.range_m, sc.angle_deg), fill:"#6fb6ff", "fill-opacity":.16, stroke:"#3d8bff", "stroke-width":2, "stroke-dasharray":"7 5", "vector-effect":"non-scaling-stroke", "pointer-events":"visibleStroke" }));
+    rot.append(el("path", { d:conePath(k.l, k.ang), fill:"#1846c7", "fill-opacity":.42, stroke:"#1846c7", "stroke-width":2.5, "vector-effect":"non-scaling-stroke", "pointer-events":"visibleStroke" }));
+    const lab = scEl(0, -sc.range_m), t = el("text", { y:18, "text-anchor":"middle", "font-size":12, "font-weight":700, fill:"#1d2129", "paint-order":"stroke", stroke:"#fff", "stroke-width":4 });
+    t.textContent = `${sc.zoom}倍 ${sc.range_m}m・${sc.angle_deg}°`; lab.append(t); rot.append(lab);
+    reach = sc.range_m;
+  } else if (k.kind === "rect") {
+    const L = k.adjustable ? (s.len ?? k.l) : k.l;
+    const y0 = k.centered ? -L / 2 : -L;
+    rot.append(el("rect", { x:-k.w / 2, y:y0, width:k.w, height:L, ...shape }));
+    reach = -y0;
+    if (k.adjustable) {
+      const lab = scEl(k.w / 2, -L / 2), t = el("text", { x:8, y:4, "font-size":12, "font-weight":700, fill:"#1d2129", "paint-order":"stroke", stroke:"#fff", "stroke-width":4 });
+      t.textContent = `${L.toFixed(0)} / ${k.l} m`; lab.append(t); rot.append(lab);
+    }
+  } else if (k.kind === "grid") {
+    const W = (k.cols - 1) * k.spacing_m, H = (k.rows - 1) * k.spacing_m;
+    rot.append(el("rect", { x:-W/2 - k.r, y:-H/2 - k.r, width:W + 2*k.r, height:H + 2*k.r, fill:"none", stroke:color, "stroke-width":1, "stroke-dasharray":"4 3", "vector-effect":"non-scaling-stroke", "pointer-events":"visibleStroke" }));
+    for (let i = 0; i < k.rows; i++) for (let j = 0; j < k.cols; j++)
+      rot.append(el("circle", { cx:-W/2 + j*k.spacing_m, cy:-H/2 + i*k.spacing_m, r:k.r, ...shape }));
+    reach = H / 2 + k.r;
+  } else if (k.kind === "wall") {
+    rot.append(el("line", { x1:-k.l/2, y1:0, x2:k.l/2, y2:0, stroke:color, "stroke-width":5, "stroke-linecap":"round", "vector-effect":"non-scaling-stroke" }));
+    if (k.jammers) {
+      const step = k.jammers.r * 2;
+      for (let i = 0; i < k.jammers.n; i++)
+        rot.append(el("circle", { cx:-k.l/2 + k.jammers.r + i*step, cy:0, r:k.jammers.r, ...shape }));
+    }
+    // 向き（壁の正面側）を示す小さな矢印
+    const tip = scEl(0, 0); tip.append(el("path", { d:"M-7 -10 L0 -20 L7 -10", fill:"none", stroke:color, "stroke-width":3 })); rot.append(tip);
+  } else if (k.kind === "segment") {
+    const ex = s.ex ?? 0, ey = s.ey ?? -(k.max ?? 50);
+    g.append(el("line", { x1:0, y1:0, x2:ex, y2:ey, stroke:color, "stroke-width":3, "stroke-dasharray":"8 5", "vector-effect":"non-scaling-stroke", "pointer-events":"visibleStroke" }));
+    const ang = Math.atan2(ex, -ey) * 180 / Math.PI;
+    const end = scEl(ex, ey);
+    end.append(el("path", { d:"M-8 6 L0 -8 L8 6 Z", fill:color, stroke:"#fff", "stroke-width":2, transform:`rotate(${ang})` }));
+    if (selected === s.id) end.append(el("circle", { class:"seg-end", r:9, fill:"#fff", stroke:"#1d2129", "stroke-width":3 }));
+    const lab = scEl(ex / 2, ey / 2), t = el("text", { y:-8, "text-anchor":"middle", "font-size":12, "font-weight":700, fill:"#1d2129", "paint-order":"stroke", stroke:"#fff", "stroke-width":4 });
+    t.textContent = k.max ? `${Math.hypot(ex, ey).toFixed(0)} / ${k.max} m` : `${Math.hypot(ex, ey).toFixed(0)} m`; lab.append(t);
+    g.append(end, lab);
+  }
+  if (ROTATABLE.has(k.kind) && selected === s.id) {
+    const h = scEl(0, -reach); h.append(el("line", { x1:0, y1:0, x2:0, y2:-26, stroke:"#fff", "stroke-width":2 }));
+    h.append(el("circle", { class:"skill-rot", cy:-30, r:9, fill:"#fff", stroke:"#1d2129", "stroke-width":3 }));
+    rot.append(h);
+  }
+  g.append(rot);
+  // アイコン（つまんで移動）
+  const ic = scEl(0, 0);
+  ic.classList.add("skill-icon");
+  if (k.kind === "icon") ic.append(el("circle", { r:17, fill:"none", stroke:color, "stroke-width":2, "stroke-dasharray":"4 3" }));
+  ic.append(el("circle", { r:12, fill:"#fff", stroke:color, "stroke-width":selected === s.id ? 4 : 2.5 }));
+  ic.append(el("image", { x:-9, y:-9, width:18, height:18, href:`icons/${s.legend}_${s.slot}.svg` }));
+  g.append(ic);
+  g.querySelectorAll(".sc").forEach(placeSc);
+  return g;
+}
+function refreshSkill(s) {
+  const old = skillLayer.querySelector(`[data-id="${s.id}"]`);
+  if (old) old.replaceWith(buildSkillEl(s));
+}
+function aimSkill(s, p) {
+  const k = skillKind(abilityOf(s)), dx = p.x - s.x, dy = p.y - s.y, d = Math.hypot(dx, dy);
+  if (k.kind === "segment") {
+    const f = k.max && d > k.max ? k.max / d : 1;
+    s.ex = dx * f; s.ey = dy * f;
+  } else if (ROTATABLE.has(k.kind) && d > 0) {
+    s.dir = Math.round(Math.atan2(dx, -dy) * 180 / Math.PI / 5) * 5;
+    if (k.kind === "rect" && k.adjustable && !k.centered) s.len = Math.max(1, Math.min(k.l, d)); // ドラッグした距離＝長さ（最大値まで）
+  }
+}
+
+
+// ===================== ステップ =====================
+// 保存形式：{ squads, steps:[{pawns, skills, ring}], cur }。board.pawns / skills / ring は表示中のステップを指す。
+function syncStep() { const st = board.steps[board.cur]; st.pawns = board.pawns; st.skills = board.skills; st.ring = board.ring; }
+function useStep(i) {
+  board.cur = Math.max(0, Math.min(i, board.steps.length - 1));
+  const st = board.steps[board.cur];
+  st.pawns = st.pawns || []; st.skills = st.skills || []; st.ring = st.ring || {};
+  board.pawns = st.pawns; board.skills = st.skills; board.ring = st.ring;
+}
+function renderAll() { renderSquads(); renderPawns(); renderSkills(); renderRing(); renderRingPanel(); renderTimeline(); updateScopePanel(); }
+function goStep(i) {
+  if (playing || i < 0 || i >= board.steps.length) return;
+  syncStep(); useStep(i); selected = null; activeRing = null; saveBoard(); renderAll();
+}
+function addStep() {
+  if (playing) return;
+  syncStep();
+  const copy = JSON.parse(JSON.stringify(board.steps[board.cur])); // 今のステップを複製（ID はそのまま＝再生時に同じ駒として動く）
+  board.steps.splice(board.cur + 1, 0, copy);
+  useStep(board.cur + 1); selected = null; saveBoard(); renderAll();
+}
+function deleteStep() {
+  if (playing) return;
+  if (board.steps.length <= 1) { board.steps[0] = { pawns:[], skills:[], ring:{} }; useStep(0); }
+  else {
+    if (!window.confirm(`ステップ ${board.cur + 1} を削除しますか？`)) return;
+    board.steps.splice(board.cur, 1); useStep(Math.min(board.cur, board.steps.length - 1));
+  }
+  selected = null; saveBoard(); renderAll();
+}
+function renderTimeline() {
+  const box = document.getElementById("steps"); box.replaceChildren();
+  board.steps.forEach((_, i) => {
+    const b = document.createElement("button");
+    b.className = "st" + (i === board.cur ? " on" : ""); b.textContent = i + 1;
+    b.addEventListener("click", () => goStep(i));
+    box.append(b);
+  });
+  document.getElementById("playBtn").textContent = playing ? "■ 停止" : "▶ 再生";
+}
+
+// ---- 再生（ステップ間を補間して動かす）----
+let playing = false, playRaf = 0;
+const TRANSITION_MS = 1200, HOLD_MS = 350;
+const lerp = (a, b, t) => a + (b - a) * t;
+const lerpAng = (a, b, t) => a + ((((b - a) % 360) + 540) % 360 - 180) * t;
+const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+function blendList(A, B, t, fn) {
+  const out = [], byId = new Map(A.map(x => [x.id, x]));
+  for (const b of B) { const a = byId.get(b.id); out.push(a ? fn(a, b, t) : { ...b, __op:t }); }
+  const inB = new Set(B.map(x => x.id));
+  for (const a of A) if (!inB.has(a.id)) out.push({ ...a, __op:1 - t });
+  return out;
+}
+const blendPawn = (a, b, t) => ({ ...b, x:lerp(a.x, b.x, t), y:lerp(a.y, b.y, t), dir:lerpAng(a.dir || 0, b.dir || 0, t),
+  aim: a.aim && b.aim ? { dx:lerp(a.aim.dx, b.aim.dx, t), dy:lerp(a.aim.dy, b.aim.dy, t) } : (t < .5 ? a.aim : b.aim) });
+const blendSkill = (a, b, t) => ({ ...b, x:lerp(a.x, b.x, t), y:lerp(a.y, b.y, t), dir:lerpAng(a.dir || 0, b.dir || 0, t),
+  ex: a.ex !== undefined && b.ex !== undefined ? lerp(a.ex, b.ex, t) : b.ex, ey: a.ey !== undefined && b.ey !== undefined ? lerp(a.ey, b.ey, t) : b.ey,
+  len: a.len !== undefined && b.len !== undefined ? lerp(a.len, b.len, t) : b.len });
+function blendRing(A, B, t) {
+  const out = {};
+  for (const k of ["cur", "next", "next2"]) {
+    const a = A[k], b = B[k];
+    if (a && b) out[k] = { x:lerp(a.x, b.x, t), y:lerp(a.y, b.y, t), r:lerp(a.r, b.r, t) };
+    else if (b) out[k] = { ...b, __op:t };
+    else if (a) out[k] = { ...a, __op:1 - t };
+  }
+  return out;
+}
+function showBlend(A, B, t) {
+  board.pawns = blendList(A.pawns, B.pawns, t, blendPawn);
+  board.skills = blendList(A.skills, B.skills, t, blendSkill);
+  board.ring = blendRing(A.ring || {}, B.ring || {}, t);
+  if ((t < .5 ? A : B).ring?.round) board.ring.round = (t < .5 ? A : B).ring.round;
+  renderPawns(); renderSkills(); renderRing();
+}
+function play() {
+  if (playing) return stop();
+  if (board.steps.length < 2) return;
+  syncStep(); selected = null; activeRing = null;
+  playing = true;
+  let from = board.cur >= board.steps.length - 1 ? 0 : board.cur;
+  useStep(from); renderAll();
+  let t0 = performance.now();
+  const tick = now => {
+    if (!playing) return;
+    const e = now - t0;
+    const A = board.steps[from], B = board.steps[from + 1];
+    if (e < TRANSITION_MS) { showBlend(A, B, ease(e / TRANSITION_MS)); }
+    else {
+      useStep(from + 1); renderPawns(); renderSkills(); renderRing(); renderTimeline();
+      if (e >= TRANSITION_MS + HOLD_MS) {
+        from += 1; t0 = now;
+        if (from >= board.steps.length - 1) { stop(); return; }
+      }
+    }
+    playRaf = requestAnimationFrame(tick);
+  };
+  playRaf = requestAnimationFrame(tick);
+}
+function stop() {
+  playing = false; cancelAnimationFrame(playRaf);
+  useStep(board.cur); renderAll();
+}
+
+// ===================== リング =====================
+// ring = { cur:{x,y,r}, next:{x,y,r}, next2:{x,y,r} }（メートル）。子は親の内側に収まるよう制限する。
+const RINGS = [
+  { key:"cur",   name:"現在のリング",       color:"#ff3b5c" },
+  { key:"next",  name:"次のリング",         color:"#ffffff" },
+  { key:"next2", name:"次の次（緑）", color:"#2ee66b" },
+];
+let activeRing = null, ringPlacing = null;
+// ラウンドごとのリング半径（m）。ラウンドnの「現在のリング」＝ラウンドn-1の収縮後の円、「次のリング」＝ラウンドnの収縮後の円。
+// 出典：Liquipedia World's Edge の Ring Information（収縮後の直径 1000/650/400/200/100m の半分）。値が変わったらここを直す。
+// R2〜R5 はリングコンソールで次の次（緑）まで分かる。R6 の収縮先は半径1mの点（中心は別途決まる）。分からない円はユーザーが ✕ で消す。
+// R1 は現在のリング（初期の円）が決まっていないので置かない。置いてあればその内側に収める。
+const RING_TEMPLATE = {
+  1:{ cur:null, next:500, next2:325 },
+  2:{ cur:500, next:325, next2:200 }, 3:{ cur:325, next:200, next2:100 }, 4:{ cur:200, next:100, next2:50 },
+  5:{ cur:100, next:50, next2:1 },    6:{ cur:50,  next:1,   next2:null },
+};
+function applyRingTemplate(n) {
+  const t = RING_TEMPLATE[n], R = board.ring;
+  const r = svg.getBoundingClientRect(), vc = toWorld(r.left + r.width / 2, r.top + r.height / 2);
+  // 1つ先のラウンドへ進めたときは、次→現在、次の次→次 に繰り上げる（位置を引き継ぐ）
+  const advance = R.round === n - 1 && R.next;
+  const pos = c => c ? { x:c.x, y:c.y } : null;
+  const curC = advance ? pos(R.next) : pos(R.cur) || pos(R.next) || vc;
+  const nextC = (advance ? pos(R.next2) : pos(R.next)) || curC;
+  const next2C = (advance ? null : pos(R.next2)) || nextC;
+  if (t.cur) R.cur = { ...curC, r:t.cur }; // R1 は現在のリングを変えない（無ければ無いまま）
+  if (t.next) R.next = { ...nextC, r:t.next }; else delete R.next;
+  if (t.next2 && t.next) R.next2 = { ...next2C, r:t.next2 }; else delete R.next2;
+  R.round = n;
+  clampRings();
+  activeRing = R.cur ? "cur" : "next"; saveBoard(); renderRing(); renderRingPanel();
+}
+function parentRing(key, ring = board.ring) { return key === "next" ? ring.cur : key === "next2" ? (ring.next || ring.cur) : null; }
+function clampRing(c, parent) {
+  if (!c || !parent) return;
+  c.r = Math.min(c.r, parent.r);
+  const dx = c.x - parent.x, dy = c.y - parent.y, d = Math.hypot(dx, dy), maxd = parent.r - c.r;
+  if (d > maxd) { const f = maxd / (d || 1); c.x = parent.x + dx * f; c.y = parent.y + dy * f; }
+}
+function clampRings() { clampRing(board.ring.next, board.ring.cur); clampRing(board.ring.next2, board.ring.next || board.ring.cur); }
+function renderRing() {
+  ringLayer.replaceChildren();
+  const R = board.ring || {}, s = mapSizeM(), pad = 0; // リング外の塗りはマップの範囲内だけ
+  if (R.cur) {
+    const c = R.cur, g = el("g", { opacity:R.cur.__op ?? 1 });
+    // リング外：マップ全体からリング内をくり抜いて塗る
+    g.append(el("path", { d:`M${-pad} ${-pad} H${s.w + pad} V${s.h + pad} H${-pad} Z M${c.x - c.r} ${c.y} a${c.r} ${c.r} 0 1 0 ${2*c.r} 0 a${c.r} ${c.r} 0 1 0 ${-2*c.r} 0 Z`,
+      "fill-rule":"evenodd", fill:"#c8143c", "fill-opacity":.3 }));
+    g.append(el("circle", { cx:c.x, cy:c.y, r:c.r, fill:"none", stroke:"#ff3b5c", "stroke-width":3, "vector-effect":"non-scaling-stroke" }));
+    ringLayer.append(g);
+  }
+  if (R.next) {
+    const c = R.next, g = el("g", { opacity:c.__op ?? 1 });
+    g.append(el("circle", { cx:c.x, cy:c.y, r:c.r, fill:"none", stroke:"#1d2129", "stroke-width":5, "stroke-opacity":.35, "vector-effect":"non-scaling-stroke" }));
+    g.append(el("circle", { cx:c.x, cy:c.y, r:c.r, fill:"none", stroke:"#fff", "stroke-width":2.5, "vector-effect":"non-scaling-stroke" }));
+    ringLayer.append(g);
+  }
+  if (R.next2) {
+    const c = R.next2, g = el("g", { opacity:c.__op ?? 1 });
+    g.append(el("circle", { cx:c.x, cy:c.y, r:c.r, fill:"#2ee66b", "fill-opacity":.1, stroke:"#2ee66b", "stroke-width":2.5, "stroke-dasharray":"10 6", "vector-effect":"non-scaling-stroke" }));
+    ringLayer.append(g);
+  }
+  for (const def of RINGS) {
+    const c = R[def.key]; if (!c || typeof c !== "object") continue;
+    if (c.r < 5) { // 収縮の中心（半径1mなど）は画面上で見える印を付ける
+      const col = def.key === "next2" ? "#2ee66b" : def.key === "next" ? "#ffffff" : "#ff3b5c";
+      const m = scEl(c.x, c.y);
+      m.append(el("circle", { r:7, fill:"none", stroke:"#1d2129", "stroke-width":4, opacity:c.__op ?? 1 }));
+      m.append(el("circle", { r:7, fill:"none", stroke:col, "stroke-width":2, opacity:c.__op ?? 1 }));
+      m.append(el("path", { d:"M-12 0 H-4 M4 0 H12 M0 -12 V-4 M0 4 V12", stroke:col, "stroke-width":2, opacity:c.__op ?? 1 }));
+      ringLayer.append(m);
+    }
+    if (c.__op !== undefined) continue;
+    const lab = scEl(c.x, c.y - c.r), t = el("text", { y:c.r < 5 ? -16 : -8, "text-anchor":"middle", "font-size":12, "font-weight":700,
+      fill:"#1d2129", "paint-order":"stroke", stroke:"#fff", "stroke-width":4 });
+    const rd = def.key === "cur" && R.round ? `R${R.round} ` : def.key === "next" && R.round ? `R${R.round}収縮後 ` : def.key === "next2" && R.round ? `R${R.round + 1}収縮後 ` : "";
+    t.textContent = c.r < 5 ? `${rd}${def.name.replace("（緑）", "")}  収縮の中心（半径${c.r.toFixed(0)}m）` : `${rd}${def.name.replace("（緑）", "")}  半径${c.r.toFixed(0)}m`; lab.append(t); ringLayer.append(lab);
+    if (activeRing === def.key) {
+      const ch = scEl(c.x, c.y); ch.append(el("circle", { class:"ring-handle", "data-ring":def.key, "data-part":"center", r:9, fill:"#fff", stroke:"#1d2129", "stroke-width":3 }));
+      const eh = scEl(c.x + c.r, c.y); eh.append(el("circle", { class:"ring-handle", "data-ring":def.key, "data-part":"edge", r:9, fill:def.color === "#ffffff" ? "#1d2129" : def.color, stroke:"#fff", "stroke-width":3 }));
+      ringLayer.append(ch, eh);
+    }
+  }
+  ringLayer.querySelectorAll(".sc").forEach(placeSc);
+}
+function renderRingPanel() {
+  const box = document.getElementById("ringList"); box.replaceChildren();
+  const tpl = document.createElement("div"); tpl.className = "ringtpl";
+  tpl.title = "ラウンドのテンプレート";
+  for (const n of Object.keys(RING_TEMPLATE)) {
+    const b = document.createElement("button");
+    b.textContent = "R" + n; b.classList.toggle("on", board.ring.round === +n);
+    const t = RING_TEMPLATE[n];
+    b.title = (t.cur ? `現在 半径${t.cur}m` : "現在のリングは任意（置けばその内側に収める）") + `／次 半径${t.next}m` + (t.next2 ? `／次の次（緑） 半径${t.next2}m` : "") +
+      "。1つ前のラウンドから進めると位置を繰り上げて引き継ぐ。分からない円は ✕ で消す";
+    b.addEventListener("click", () => applyRingTemplate(+n));
+    tpl.append(b);
+  }
+  box.append(tpl);
+  for (const def of RINGS) {
+    const c = board.ring[def.key];
+    const row = document.createElement("div");
+    row.className = "ringrow" + (activeRing === def.key ? " active" : "") + (ringPlacing === def.key ? " placing" : "");
+    row.innerHTML = `<span class="sw"></span><span class="nm"></span><span class="rv"></span><button class="put"></button><button class="del" title="消す">✕</button>`;
+    row.querySelector(".sw").style.cssText = def.key === "cur" ? "background:#c8143c55;border:2px solid #ff3b5c" : def.key === "next" ? "background:#fff;border:2px solid #1d2129" : "background:#2ee66b33;border:2px dashed #2ee66b";
+    row.querySelector(".nm").textContent = def.name;
+    row.querySelector(".rv").textContent = c ? `${c.r.toFixed(0)}m` : "";
+    const put = row.querySelector(".put"); put.textContent = ringPlacing === def.key ? "配置中" : "配置";
+    put.addEventListener("click", e => { e.stopPropagation(); setRingPlacing(ringPlacing === def.key ? null : def.key); });
+    row.querySelector(".del").hidden = !c;
+    row.querySelector(".del").addEventListener("click", e => {
+      e.stopPropagation(); delete board.ring[def.key];
+      if (def.key === "cur" && board.ring.round !== 1) delete board.ring.round;
+      if (activeRing === def.key) activeRing = null;
+      saveBoard(); renderRing(); renderRingPanel();
+    });
+    row.addEventListener("click", () => { if (!c) return; activeRing = activeRing === def.key ? null : def.key; renderRing(); renderRingPanel(); });
+    box.append(row);
+  }
+}
+function setRingPlacing(key) {
+  ringPlacing = key;
+  if (key) { setPlacing(null); setPlacingSkill(null); setMeasuring(false); }
+  svg.classList.toggle("placing", !!key);
+  renderRingPanel();
+}
+
+
+// ===================== 作戦の保存・読み込み =====================
+// 作戦データ：{ format:"apex-tactical-board", version:1, mapId, name, savedAt, metersPerPx, board:{squads, steps, cur} }
+// metersPerPx を一緒に保存し、読み込み時にスケール補正が違っていてもマップ上の同じ地点に置かれるよう換算する。
+const PLAN_FORMAT = "apex-tactical-board";
+const plansKey = id => "apexBoard.plans." + id;
+function currentPlan(name) {
+  syncStep();
+  return { format:PLAN_FORMAT, version:1, mapId:map.id, mapName:map.name, name:name || "", savedAt:new Date().toISOString(),
+    metersPerPx:map.metersPerPx, board:JSON.parse(JSON.stringify({ squads:board.squads, steps:board.steps, cur:board.cur })) };
+}
+function rescaleBoard(b, k) {
+  if (Math.abs(k - 1) < 1e-9) return;
+  for (const st of b.steps) {
+    for (const p of st.pawns || []) { p.x *= k; p.y *= k; if (p.aim) { p.aim.dx *= k; p.aim.dy *= k; } }
+    for (const p of st.skills || []) { p.x *= k; p.y *= k; }
+    for (const c of Object.values(st.ring || {})) if (c && typeof c === "object") { c.x *= k; c.y *= k; c.r *= k; }
+  }
+}
+function loadPlan(plan) {
+  if (!plan || plan.format !== PLAN_FORMAT || !plan.board || !Array.isArray(plan.board.steps)) { window.alert("作戦ファイルの形式が正しくありません"); return false; }
+  const target = MAPS.find(m => m.id === plan.mapId);
+  if (!target) { window.alert(`このボードにないマップの作戦です（${plan.mapName || plan.mapId}）`); return false; }
+  if (playing) stop();
+  const b = JSON.parse(JSON.stringify(plan.board));
+  // メートル座標は「保存時の m/px」基準。今の m/px に合わせて換算（ピクセル上の位置を保つ）
+  if (plan.metersPerPx) rescaleBoard(b, target.metersPerPx / plan.metersPerPx);
+  if (target.id !== map.id) { sel.value = target.id; loadMap(target.id); }
+  store(boardKey(), { squads:b.squads, steps:b.steps, cur:b.cur || 0 });
+  loadBoard();
+  return true;
+}
+function readPlans() { return restore(plansKey(map.id), []); }
+function renderPlans() {
+  const box = document.getElementById("planList"); box.replaceChildren();
+  const plans = readPlans();
+  if (!plans.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "まだ保存した作戦はありません"; box.append(e); return; }
+  plans.forEach((pl, i) => {
+    const row = document.createElement("div"); row.className = "plan";
+    const d = new Date(pl.savedAt);
+    row.innerHTML = `<span class="pn"><b></b><small></small></span><button class="ld">読み込む</button><button class="ow" title="今の盤面で上書き">上書き</button><button class="x" title="削除">✕</button>`;
+    row.querySelector("b").textContent = pl.name || "(名前なし)";
+    row.querySelector("small").textContent = `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })} ・ ${pl.board.steps.length} ステップ`;
+    row.querySelector(".ld").addEventListener("click", () => {
+      if (!window.confirm(`「${pl.name}」を読み込みます。今の盤面は置き換わります。よろしいですか？`)) return;
+      if (loadPlan(pl)) closePlanPanel();
+    });
+    row.querySelector(".ow").addEventListener("click", () => {
+      if (!window.confirm(`「${pl.name}」を今の盤面で上書きしますか？`)) return;
+      const list = readPlans(); list[i] = currentPlan(pl.name); store(plansKey(map.id), list); renderPlans();
+    });
+    row.querySelector(".x").addEventListener("click", () => {
+      if (!window.confirm(`「${pl.name}」を削除しますか？`)) return;
+      const list = readPlans(); list.splice(i, 1); store(plansKey(map.id), list); renderPlans();
+    });
+    box.append(row);
+  });
+}
+const planPanel = document.getElementById("planPanel");
+function openPlanPanel() {
+  const r = document.getElementById("planBtn").getBoundingClientRect();
+  planPanel.style.left = Math.min(r.left, innerWidth - 352) + "px";
+  planPanel.hidden = false; renderPlans();
+  document.getElementById("planName").value = "";
+}
+function closePlanPanel() { planPanel.hidden = true; }
+document.getElementById("planBtn").addEventListener("click", () => planPanel.hidden ? openPlanPanel() : closePlanPanel());
+document.addEventListener("pointerdown", e => {
+  if (!planPanel.hidden && !planPanel.contains(e.target) && e.target.id !== "planBtn") closePlanPanel();
+}, true);
+document.getElementById("planSave").addEventListener("click", () => {
+  const name = document.getElementById("planName").value.trim() || `作戦 ${new Date().toLocaleString()}`;
+  const list = readPlans(); list.unshift(currentPlan(name));
+  try { localStorage.setItem(plansKey(map.id), JSON.stringify(list)); }
+  catch (e) { window.alert("ブラウザの保存領域がいっぱいです。古い作戦を削除するか、ファイルに書き出してください。"); return; }
+  document.getElementById("planName").value = ""; renderPlans();
+});
+document.getElementById("planName").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") document.getElementById("planSave").click(); });
+document.getElementById("planExport").addEventListener("click", () => {
+  const name = document.getElementById("planName").value.trim() || "作戦";
+  const plan = currentPlan(name);
+  const safe = (map.id + "_" + name).replace(/[\\/:*?"<>|\s]+/g, "_");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(plan, null, 1)], { type:"application/json" }));
+  a.download = safe + ".json"; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("planImport").addEventListener("click", () => document.getElementById("planFile").click());
+document.getElementById("planFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  let plan;
+  try { plan = JSON.parse(await f.text()); } catch (err) { window.alert("JSON として読み込めませんでした"); return; }
+  if (!window.confirm(`「${plan.name || f.name}」（${plan.mapName || plan.mapId || "?"}）を読み込みます。今の盤面は置き換わります。よろしいですか？`)) return;
+  if (loadPlan(plan)) closePlanPanel();
+});
+
+// ===================== 距離測定 =====================
+let measuring = false, measurePts = [], measuredDistance = 0;
+function setMeasuring(on) {
+  measuring = on;
+  if (on) { setPlacing(null); if (placingSkill) setPlacingSkill(null); if (ringPlacing) setRingPlacing(null); }
+  document.getElementById("measureBtn").classList.toggle("on", on);
+  svg.classList.toggle("measure", on);
+  if (!on) clearMeasure();
+}
+function clearMeasure() { measurePts = []; measureLayer.replaceChildren(); measuredDistance = 0; showCalPanel(); }
+function showCalPanel() {
+  const panel = document.getElementById("calPanel");
+  panel.hidden = !(measuredDistance > 0);
+  if (!panel.hidden) { const i = document.getElementById("calInput"); i.value = ""; i.focus(); }
+}
+function addMeasurePoint(p) {
+  if (measurePts.length >= 2) clearMeasure();
+  measurePts.push(p);
+  if (measurePts.length === 2) {
+    drawMeasure(measurePts[0], measurePts[1], false);
+    measuredDistance = Math.hypot(measurePts[1].x - measurePts[0].x, measurePts[1].y - measurePts[0].y);
+    showCalPanel();
+  }
+}
+function sized(node, attr, px) { node.dataset.attr = attr; node.dataset.px = px; node.setAttribute(attr, px / view.scale); return node; }
+function drawMeasure(a, b, preview) {
+  measureLayer.replaceChildren();
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  const line = sized(el("line", { x1:a.x, y1:a.y, x2:b.x, y2:b.y, stroke:"#ff5a3c", "stroke-linecap":"round" }), "stroke-width", 3);
+  if (preview) sized(line, "stroke-dasharray", 8);
+  measureLayer.append(line);
+  for (const p of [a, b]) measureLayer.append(sized(el("circle", { cx:p.x, cy:p.y, fill:"#fff", stroke:"#ff5a3c" }), "r", 5));
+  const label = el("text", { x:(a.x+b.x)/2, y:(a.y+b.y)/2, fill:"#fff", "text-anchor":"middle", "paint-order":"stroke", stroke:"#1d2129", "font-weight":"600" });
+  sized(label, "font-size", 16); sized(label, "stroke-width", 4);
+  label.textContent = `${d.toFixed(1)} m`;
+  measureLayer.append(label);
+}
+
+// ===================== スケール補正 =====================
+function updateScaleInfo() {
+  const tag = map.calibrated ? '<span class="tag ok">実測済み</span>' : '<span class="tag">暫定</span>';
+  document.getElementById("scaleInfo").innerHTML =
+    `<b>${map.metersPerPx.toFixed(3)}</b> m/px（${map.baseMetersPerPx}×${map.scaleFactor.toFixed(4)}）${tag}`;
+}
+function setFactor(factor, calibrated) {
+  const r = svg.getBoundingClientRect();
+  const c = toWorld(r.left + r.width / 2, r.top + r.height / 2);
+  const k = factor / map.scaleFactor;
+  map.scaleFactor = factor; map.calibrated = calibrated;
+  map.metersPerPx = map.baseMetersPerPx * factor;
+  const s = mapSizeM();
+  mapImg.setAttribute("width", s.w); mapImg.setAttribute("height", s.h);
+  // ポーンの位置はマップ上の同じ地点に留まるよう、メートル座標も同じ倍率で伸縮
+  syncStep();
+  for (const st of board.steps) {
+    for (const p of st.pawns || []) { p.x *= k; p.y *= k; if (p.aim) { p.aim.dx *= k; p.aim.dy *= k; } }
+    for (const p of st.skills || []) { p.x *= k; p.y *= k; }
+    for (const c of Object.values(st.ring || {})) if (c && typeof c === "object") { c.x *= k; c.y *= k; c.r *= k; }
+  }
+  saveBoard();
+  view.scale /= k;
+  view.x = r.width / 2 - c.x * k * view.scale;
+  view.y = r.height / 2 - c.y * k * view.scale;
+  clearMeasure(); saveCalibration(); updateScaleInfo(); renderPawns(); renderSkills(); renderRing(); renderRingPanel(); applyView();
+}
+document.getElementById("calApply").addEventListener("click", () => {
+  const actual = parseFloat(document.getElementById("calInput").value);
+  if (!(actual > 0) || !(measuredDistance > 0)) return;
+  setFactor(map.scaleFactor * actual / measuredDistance, true);
+});
+document.getElementById("calInput").addEventListener("keydown", e => {
+  e.stopPropagation();
+  if (e.key === "Enter") document.getElementById("calApply").click();
+});
+document.getElementById("calReset").addEventListener("click", () => setFactor(map.defaultFactor, map.defaultCalibrated));
+document.getElementById("calExport").addEventListener("click", () => {
+  const data = MAPS.map(m => ({ id:m.id, name:m.name, image:m.image, widthPx:m.widthPx, heightPx:m.heightPx,
+    baseMetersPerPx:m.baseMetersPerPx, scaleFactor:+m.scaleFactor.toFixed(4), calibrated:m.calibrated, metersPerPx:+m.metersPerPx.toFixed(4) }));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type:"application/json" }));
+  a.download = "maps.json"; a.click(); URL.revokeObjectURL(a.href);
+});
+
+// ===================== 縮尺バー =====================
+function updateScalebar() {
+  const target = 120 / view.scale, steps = [5,10,20,25,50,100,200,250,500,1000];
+  const m = steps.find(v => v >= target) || 1000;
+  document.querySelector("#scalebar .bar").style.width = (m * view.scale) + "px";
+  document.querySelector("#scalebar span").textContent = `${m} m`;
+}
+
+// ===================== 起動 =====================
+function loadMap(id) {
+  if (playing) { playing = false; cancelAnimationFrame(playRaf); }
+  map = MAPS.find(m => m.id === id) || MAPS[0];
+  const s = mapSizeM();
+  mapImg.setAttribute("href", map.image);
+  mapImg.setAttribute("width", s.w); mapImg.setAttribute("height", s.h);
+  setMeasuring(false); setPlacing(null);
+  loadBoard(); updateScaleInfo(); fit();
+  store("apexBoard.map", map.id);
+}
+const sel = document.getElementById("mapSel");
+MAPS.forEach(m => sel.append(new Option(m.name, m.id)));
+sel.addEventListener("change", () => { loadMap(sel.value); sel.blur(); });
+document.getElementById("measureBtn").addEventListener("click", () => setMeasuring(!measuring));
+document.getElementById("fitBtn").addEventListener("click", fit);
+const sizeInput = document.getElementById("sizeInput");
+sizeInput.value = pawnSize;
+sizeInput.addEventListener("input", () => { pawnSize = +sizeInput.value; store("apexBoard.pawnSize", pawnSize); applyView(); });
+window.addEventListener("resize", fit);
+
+renderLegends();
+document.getElementById("prevStep").addEventListener("click", () => goStep(board.cur - 1));
+document.getElementById("nextStep").addEventListener("click", () => goStep(board.cur + 1));
+document.getElementById("addStep").addEventListener("click", addStep);
+document.getElementById("delStep").addEventListener("click", deleteStep);
+document.getElementById("playBtn").addEventListener("click", play);
+const savedMap = restore("apexBoard.map", null);
+sel.value = (MAPS.find(m => m.id === savedMap) || MAPS[0]).id;
+loadMap(sel.value);
+</script>
+</body>
+</html>

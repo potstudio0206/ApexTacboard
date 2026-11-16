@@ -1,0 +1,46 @@
+[
+  {
+    "id": "worlds_edge",
+    "name": "World's Edge",
+    "image": "maps/worlds_edge.jpg",
+    "widthPx": 1206,
+    "heightPx": 1526,
+    "baseMetersPerPx": 2.3,
+    "scaleFactor": 0.888,
+    "calibrated": false,
+    "metersPerPx": 2.0424
+  },
+  {
+    "id": "storm_point",
+    "name": "Storm Point",
+    "image": "maps/storm_point.jpg",
+    "widthPx": 1206,
+    "heightPx": 1186,
+    "baseMetersPerPx": 2.38,
+    "scaleFactor": 0.888,
+    "calibrated": false,
+    "metersPerPx": 2.1134
+  },
+  {
+    "id": "e_district",
+    "name": "E-District",
+    "image": "maps/e_district.jpg",
+    "widthPx": 1106,
+    "heightPx": 1099,
+    "baseMetersPerPx": 2.25,
+    "scaleFactor": 0.888,
+    "calibrated": true,
+    "metersPerPx": 1.998
+  },
+  {
+    "id": "broken_moon",
+    "name": "Broken Moon",
+    "image": "maps/broken_moon.jpg",
+    "widthPx": 1130,
+    "heightPx": 1129,
+    "baseMetersPerPx": 2.3,
+    "scaleFactor": 0.888,
+    "calibrated": false,
+    "metersPerPx": 2.0424
+  }
+]

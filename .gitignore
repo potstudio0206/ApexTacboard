@@ -1,0 +1,9 @@
+# 顔アイコンを切り抜く前の元画像（サイズが大きく、公開には不要）
+portraits/
+
+# OS・エディタのファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+__pycache__/

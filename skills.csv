@@ -1,0 +1,85 @@
+﻿legend,class,slot,ability,shape,radius_m,length_m,width_m,angle_deg,range_m,duration_s,cooldown_s,count,source,notes,icon_url
+Alter,Skirmisher,passive,Gift From The Rift,circle,75,,,,75,,,1,wiki.gg,75m以内のデスボックスから壁越しにアイテム1つ取得,https://apexlegends.wiki.gg/images/Gift_From_The_Rift.svg
+Alter,Skirmisher,tactical,Void Passage,line,,30,,,,15,25,2,wiki.gg,壁・床を貫通するポータル。奥行き最大30m、垂直最大45m,https://apexlegends.wiki.gg/images/Void_Passage.svg
+Alter,Skirmisher,ultimate,Void Nexus,point,250,,,,250,10,120,1,wiki.gg,設置地点へ250m以内から帰還できる装置,https://apexlegends.wiki.gg/images/Void_Nexus.svg
+Ash,Skirmisher,passive,Predator's Pursuit,none,,,,,,,10,,wiki.gg,空中ダッシュ（2026/5/5パッチ後の値）,https://apexlegends.wiki.gg/images/Predator%27s_Pursuit.svg
+Ash,Skirmisher,tactical,Arc Snare,circle,4,,,,,5,20,1,wiki.gg,着地点に拘束トラップ。拘束6秒,https://apexlegends.wiki.gg/images/Arc_Snare.svg
+Ash,Skirmisher,ultimate,Phase Breach,trajectory,,,,,75,15,150,,wiki.gg,指定地点への一方通行ポータル。最大75m（アップグレードで+25m）,https://apexlegends.wiki.gg/images/Phase_Breach.svg
+Axle,Skirmisher,passive,Drift,none,,,,,,,,,wiki.gg,スライド強化,https://apexlegends.wiki.gg/images/Drift.svg
+Axle,Skirmisher,tactical,Nitro Gate,point,,,,,,3,25,2,wiki.gg,床に置く加速ゲート。最大2個,https://apexlegends.wiki.gg/images/Nitro_Gate.svg
+Axle,Skirmisher,ultimate,Kickstart,trajectory,2.5,,,,,15,90,,wiki.gg,敵を追尾するドローン。爆発半径2.5m、スタン1.5秒,https://apexlegends.wiki.gg/images/Kickstart.svg
+Ballistic,Assault,passive,Sling,none,,,,,,,,1,wiki.gg,3つ目の武器スロット,https://apexlegends.wiki.gg/images/Sling.svg
+Ballistic,Assault,tactical,Whistler,trajectory,,,,,75,5,25,2,wiki.gg,75mまでロックオンする追尾ダーツ,https://apexlegends.wiki.gg/images/Whistler.svg
+Ballistic,Assault,ultimate,Tempest,circle,90,,,,,30,120,,wiki.gg,自身中心90m以内の味方にバフ,https://apexlegends.wiki.gg/images/Tempest.svg
+Bangalore,Assault,passive,Double Time,none,,,,,,2,,,wiki.gg,被弾時に移動速度+30%,https://apexlegends.wiki.gg/images/Double_Time.svg
+Bangalore,Assault,tactical,Smoke Launcher,rect,,7,25,,,11,30,2,実測（ユーザー計測 2026-11-16）,着弾点に縦7m×横25mのスモーク（横＝発射方向に垂直）。射程は扱わない,https://apexlegends.wiki.gg/images/Smoke_Launcher.svg
+Bangalore,Assault,ultimate,Rolling Thunder,rect,,65,55,,,6,210,,実測（ユーザー計測 2026-11-16）,フレア前方に縦65m×横55mの爆撃範囲。6秒後に爆発、スタン,https://apexlegends.wiki.gg/images/Rolling_Thunder.svg
+Bloodhound,Recon,passive,Tracker,none,,,,,,90,,,wiki.gg,痕跡を確認。足跡は40m以内,https://apexlegends.wiki.gg/images/Tracker.svg
+Bloodhound,Recon,tactical,Eye of the Allfather,cone,,75,,125,,3,25,,wiki.gg,前方125°・75mをスキャン,https://apexlegends.wiki.gg/images/Eye_of_the_Allfather.svg
+Bloodhound,Recon,ultimate,Allfather's Cloak,circle,2.4,,,,,8,120,1,wiki.gg,投擲して設置する透明化フィールド（現行版。旧Beast of the Huntから変更）,https://apexlegends.wiki.gg/images/Allfather%27s_Cloak.svg
+Catalyst,Controller,passive,Barricade,none,,,,,,,,4,wiki.gg,ドア補強（最大4か所）,https://apexlegends.wiki.gg/images/Barricade.svg
+Catalyst,Controller,tactical,Piercing Spikes,rect,,2,11,,15,,20,3,wiki.gg,視線に垂直な横11m×縦2mのスパイク。射程約15m、最大3個,https://apexlegends.wiki.gg/images/Piercing_Spikes.svg
+Catalyst,Controller,ultimate,Dark Veil,line,,50,,,16,15,150,1,wiki.gg,長さ50m・高さ8mの透過壁。前方最大16mに設置,https://apexlegends.wiki.gg/images/Dark_Veil.svg
+Caustic,Controller,passive,Nox Vision,none,,,,,,,,,wiki.gg,ガス内の敵をハイライト,https://apexlegends.wiki.gg/images/Nox_Vision.svg
+Caustic,Controller,tactical,Nox Gas Trap,circle,7,,,,,22,20,6,実測（ユーザー計測 2026-11-16）,ガス半径7m。3チャージ、マップ上最大6個,https://apexlegends.wiki.gg/images/Nox_Gas_Trap.svg
+Caustic,Controller,ultimate,Nox Gas Grenade,circle,7,,,,,20,120,1,実測（ユーザー計測 2026-11-16）,ガス半径7m,https://apexlegends.wiki.gg/images/Nox_Gas_Grenade.svg
+Conduit,Support,passive,Savior's Speed,none,,,,,,,,,wiki.gg,離れた味方へ向かうときスプリント速度+30%,https://apexlegends.wiki.gg/images/Savior%27s_Speed.svg
+Conduit,Support,tactical,Radiant Transfer,none,,,,,50,8,30,2,wiki.gg,50m以内の味方と自身に一時シールド（2026/6/23パッチ後の値）,https://apexlegends.wiki.gg/images/Radiant_Transfer.svg
+Conduit,Support,ultimate,Energy Barricade,line,4.5,63,,,,45,150,7,実測（ユーザー計測 2026-11-16）,ジャマー7個（各半径4.5m・直径9m、円が接して並ぶ）で全長63m,https://apexlegends.wiki.gg/images/Energy_Barricade.svg
+Crypto,Recon,passive,Neurolink,circle,30,,,,,,,,wiki.gg,ドローンの視界30m以内の敵を共有。アップグレードで37.5m,https://apexlegends.wiki.gg/images/Neurolink.svg
+Crypto,Recon,tactical,Surveillance Drone,point,200,,,,200,,40,,wiki.gg,Cryptoから最大200mまで飛ばせるドローン,https://apexlegends.wiki.gg/images/Surveillance_Drone.svg
+Crypto,Recon,ultimate,Drone EMP,circle,30,,,,,,180,1,wiki.gg,ドローン中心30mのEMP（3秒溜め）。アップグレードで37.5m,https://apexlegends.wiki.gg/images/Drone_EMP.svg
+Fuse,Assault,passive,Grenadier,none,,,,,,,,1,wiki.gg,グレネード所持数+1、投擲が遠く速い,https://apexlegends.wiki.gg/images/Grenadier.svg
+Fuse,Assault,tactical,Knuckle Cluster,circle,7,,,,,3,20,2,実測（ユーザー計測 2026-11-16）,着弾点の半径7mに小爆発を連続。2チャージ,https://apexlegends.wiki.gg/images/Knuckle_Cluster.svg
+Fuse,Assault,ultimate,The Motherlode,circle,3.5,,,,,,120,,wiki.gg,主爆発3.5m、散布爆弾は半径2.25m。アップグレードで炎エリア8秒（S28リワーク後の値）,https://apexlegends.wiki.gg/images/The_Motherlode.svg
+Gibraltar,Support,passive,Gun Shield,none,,,,,,,9,,wiki.gg,ADS時に50HPのシールド,https://apexlegends.wiki.gg/images/Gun_Shield.svg
+Gibraltar,Support,tactical,Dome of Protection,circle,6,,,,,12,13,,wiki.gg,投擲。内部の蘇生33%高速。アップグレードで16秒,https://apexlegends.wiki.gg/images/Dome_of_Protection.svg
+Gibraltar,Support,ultimate,Defensive Bombardment,circle,30,,,,,6,180,,wiki.gg,スモーク地点を中心に爆撃。アップグレードで3チャージ（半径縮小）,https://apexlegends.wiki.gg/images/Defensive_Bombardment.svg
+Horizon,Skirmisher,passive,Spacewalk,none,,,,,,,,,wiki.gg,空中制御向上,https://apexlegends.wiki.gg/images/Spacewalk.svg
+Horizon,Skirmisher,tactical,Gravity Lift,circle,11,30,,,,10,25,,実測（ユーザー計測 2026-11-16）,半径11m、高さ30mのリフト,https://apexlegends.wiki.gg/images/Gravity_Lift.svg
+Horizon,Skirmisher,ultimate,Black Hole,circle,10,,,,,12,210,,wiki.gg,着地2秒後に半径内を引き寄せ,https://apexlegends.wiki.gg/images/Black_Hole.svg
+Lifeline,Support,passive,Combat Glide,none,,,,,,4,,,wiki.gg,空中滑空。ダウン味方をD.O.Cで蘇生,https://apexlegends.wiki.gg/images/Combat_Glide.svg
+Lifeline,Support,tactical,D.O.C. Heal Drone,circle,6,,,,,20,45,1,wiki.gg,半径6m内を8HP/秒で回復。指定した味方に追従,https://apexlegends.wiki.gg/images/D.O.C._Heal_Drone.svg
+Lifeline,Support,ultimate,D.O.C. Halo,circle,7,,,,,,180,1,実測（ユーザー計測 2026-11-16）,半径7mのリング状シールド,https://apexlegends.wiki.gg/images/D.O.C._Halo.svg
+Loba,Support,passive,Eye for Quality,none,,,,,,,,,wiki.gg,壁越しに高レア物資を表示（マップには範囲を描かない）,https://apexlegends.wiki.gg/images/Eye_for_Quality.svg
+Loba,Support,tactical,Burglar's Best Friend,trajectory,,,,,71,,25,2,wiki.gg,ブレスレットを投げてテレポート。約71m（高所からは100m超）,https://apexlegends.wiki.gg/images/Burglar%27s_Best_Friend.svg
+Loba,Support,ultimate,Black Market Boutique,circle,120,,,,,,120,1,実測（ユーザー計測 2026-11-16）,半径120mの物資を取得可能,https://apexlegends.wiki.gg/images/Black_Market_Boutique.svg
+Mad Maggie,Assault,passive,Warlord's Ire,none,,,,,,0.8,,,wiki.gg,ダメージを与えた敵を0.8秒ハイライト。ショットガン所持で移動速度1.15倍,https://apexlegends.wiki.gg/images/Warlord%27s_Ire.svg
+Mad Maggie,Assault,tactical,Riot Drill,line,,5,,,13,9,28,1,wiki.gg,壁に刺して貫通側に長さ5mの炎。壁の厚さ13mまで,https://apexlegends.wiki.gg/images/Riot_Drill.svg
+Mad Maggie,Assault,ultimate,Wrecking Ball,trajectory,,,,,120,7,120,,実測（ユーザー計測 2026-11-16）,直線で最大120m転がる。0.8秒ごとにスピードパッドを落とし、最大7秒で爆発,https://apexlegends.wiki.gg/images/Wrecking_Ball.svg
+Mirage,Support,passive,Now You See Me...,none,,,,,,5,,,wiki.gg,ダウン時にデコイと透明化,https://apexlegends.wiki.gg/images/Now_You_See_Me....svg
+Mirage,Support,tactical,Psyche Out,trajectory,,,,,,60,15,1,wiki.gg,指定方向へ直進するデコイ（射程なし。矢印で進行方向を示す）,https://apexlegends.wiki.gg/images/Psyche_Out.svg
+Mirage,Support,ultimate,Life of the Party,point,,,,,,,60,6,wiki.gg,周囲に操作可能なデコイ6体,https://apexlegends.wiki.gg/images/Life_of_the_Party.svg
+Newcastle,Support,passive,Retrieve the Wounded,none,,,,,,,,,wiki.gg,移動しながら蘇生,https://apexlegends.wiki.gg/images/Retrieve_the_Wounded.svg
+Newcastle,Support,tactical,Mobile Shield,line,,4,,,25,20,20,1,実測（ユーザー計測 2026-11-16）,横4mの移動式シールド。射程25m,https://apexlegends.wiki.gg/images/Mobile_Shield.svg
+Newcastle,Support,ultimate,Castle Wall,line,,9,,,35,120,120,1,実測（ユーザー計測 2026-11-16）,横9mの壁。跳躍先：地点35m／味方まで75m,https://apexlegends.wiki.gg/images/Castle_Wall.svg
+Octane,Skirmisher,passive,Swift Mend,none,,,,,,,,,wiki.gg,自動回復,https://apexlegends.wiki.gg/images/Swift_Mend.svg
+Octane,Skirmisher,tactical,Stim,none,,,,,,6,0.7,,wiki.gg,移動速度上昇、HP20消費,https://apexlegends.wiki.gg/images/Stim.svg
+Octane,Skirmisher,ultimate,Launch Pad,point,,,,,,,90,2,wiki.gg,ジャンプパッド。2チャージ、マップ上最大4個。飛距離の数値は記載なし,https://apexlegends.wiki.gg/images/Launch_Pad.svg
+Pathfinder,Skirmisher,passive,Insider Knowledge,none,,,,,,,,,wiki.gg,ケアパッケージ・リングコンソール・ビーコンのスキャンでジップラインのチャージ,https://apexlegends.wiki.gg/images/Insider_Knowledge.svg
+Pathfinder,Skirmisher,tactical,Grappling Hook,trajectory,,,,,21,,20,2,wiki.gg,最大21m,https://apexlegends.wiki.gg/images/Grappling_Hook.svg
+Pathfinder,Skirmisher,ultimate,Zipline Gun,line,,200,,,200,30,120,4,wiki.gg,最大約200mのジップライン。最大4本,https://apexlegends.wiki.gg/images/Zipline_Gun.svg
+Rampart,Controller,passive,Modded Loader,none,,,,,,,,,wiki.gg,LMG・ミニガン強化,https://apexlegends.wiki.gg/images/Modded_Loader.svg
+Rampart,Controller,tactical,Amped Cover,line,,3,,,,,20,3,実測（ユーザー計測 2026-11-16）,しゃがみ高さの横3mの壁。3チャージ,https://apexlegends.wiki.gg/images/Amped_Cover.svg
+Rampart,Controller,ultimate,"Mobile Minigun ""Sheila""",cone,,,,180,,,120,1,wiki.gg,設置時の射角は水平180°,https://apexlegends.wiki.gg/images/Mobile_Minigun_%22Sheila%22.svg
+Revenant,Assault,passive,Assassin's Instinct,circle,30,,,,,,,,wiki.gg,30m以内のHP40以下の敵をハイライト,https://apexlegends.wiki.gg/images/Assassin%27s_Instinct.svg
+Revenant,Assault,tactical,Shadow Pounce,trajectory,,50,,,50,,20,,wiki.gg,前方跳躍。最小20m〜最大50m（最大3秒チャージ）,https://apexlegends.wiki.gg/images/Shadow_Pounce.svg
+Revenant,Assault,ultimate,Forged Shadows,none,,,,,,25,180,,wiki.gg,自身に75HPのシャドウ。キルで+5秒（上限25秒）,https://apexlegends.wiki.gg/images/Forged_Shadows.svg
+Seer,Recon,passive,Heart Seeker,cone,,75,,55,75,,,,wiki.gg,ADS中、75m・55°以内は壁越しに心音を検知（濃い青）。その先は視線が通れば青マーカー（倍率で距離・角度が変化）,https://apexlegends.wiki.gg/images/Heart_Seeker.svg
+Seer,Recon,tactical,Focus of Attention,rect,,75,8,,,2.5,20,,wiki.gg,前方へ最大75m・幅8mの円柱（長さは0〜75mで調整）。サイレンス2.5秒,https://apexlegends.wiki.gg/images/Focus_of_Attention.svg
+Seer,Recon,ultimate,Exhibit,circle,38,,,,50,25,180,1,wiki.gg,半径38mの球体内で動く敵を表示,https://apexlegends.wiki.gg/images/Exhibit.svg
+Sparrow,Recon,passive,Double Jump,none,,,,,,,2,,wiki.gg,二段ジャンプ,https://apexlegends.wiki.gg/images/Double_Jump.svg
+Sparrow,Recon,tactical,Tracker Dart,circle,12,,,,,12,35,3,wiki.gg,着弾点の半径12mをスキャン。最大3チャージ,https://apexlegends.wiki.gg/images/Tracker_Dart.svg
+Sparrow,Recon,ultimate,Stinger Bolt,circle,20,,,,,,150,6,wiki.gg,着弾点から半径20mに電撃6回（視線が通る敵のみ）,https://apexlegends.wiki.gg/images/Stinger_Bolt.svg
+Valkyrie,Recon,passive,VTOL Jets,none,,,,,,6,,,wiki.gg,ジェット飛行（燃料6秒）,https://apexlegends.wiki.gg/images/VTOL_Jets.svg
+Valkyrie,Recon,tactical,Missile Swarm,grid,1.5,12,9,,125,2,25,12,実測（ユーザー計測 2026-11-16）,縦4×横3の格子、各爆発半径1.5m。横幅9m（実測）＝直径3mの円が接して並ぶ→間隔3m。縦12m・パーク時の横15mは同じ間隔からの推定,https://apexlegends.wiki.gg/images/Missile_Swarm.svg
+Valkyrie,Recon,ultimate,Skyward Dive,none,,,,,,6.5,150,,実測（ユーザー計測 2026-11-16）,上昇して滑空するだけなので範囲表示なし,https://apexlegends.wiki.gg/images/Skyward_Dive.svg
+Vantage,Recon,passive,Spotter's Lens,none,,,,,450,,10,3,wiki.gg,スコープで175〜450m先をスキャン,https://apexlegends.wiki.gg/images/Spotter%27s_Lens.svg
+Vantage,Recon,tactical,Echo Relocation,trajectory,,,,,50,,17,1,wiki.gg,相棒Echoを約50m先に飛ばし、そこへ跳ぶ,https://apexlegends.wiki.gg/images/Echo_Relocation.svg
+Vantage,Recon,ultimate,Sniper's Mark,line,,,,,,10,40,5,wiki.gg,専用スナイパー。マークは10秒。射程の記載なし,https://apexlegends.wiki.gg/images/Sniper%27s_Mark.svg
+Wattson,Controller,passive,Spark of Genius,none,,,,,,,,2,wiki.gg,アルティメット促進剤で全回復,https://apexlegends.wiki.gg/images/Spark_of_Genius.svg
+Wattson,Controller,tactical,Perimeter Security,line,,30,,,,,4,4,wiki.gg,ノード間最大30mのフェンス。マップ上最大12ノード,https://apexlegends.wiki.gg/images/Perimeter_Security.svg
+Wattson,Controller,ultimate,Interception Pylon,circle,25,,,,,,180,1,wiki.gg,半径25mの投擲物を迎撃、シールド回復,https://apexlegends.wiki.gg/images/Interception_Pylon.svg
+Wraith,Skirmisher,passive,Voices from the Void,none,,,,,,,,,wiki.gg,危険を音声で警告,https://apexlegends.wiki.gg/images/Voices_from_the_Void.svg
+Wraith,Skirmisher,tactical,Into the Void,none,,,,,,4,15,,wiki.gg,虚空移動。アップグレードで6秒,https://apexlegends.wiki.gg/images/Into_the_Void.svg
+Wraith,Skirmisher,ultimate,Dimensional Rift,freeline,,152,,,152,45,90,2,wiki.gg,走った経路でポータルを結ぶ。最大約152m,https://apexlegends.wiki.gg/images/Dimensional_Rift.svg
