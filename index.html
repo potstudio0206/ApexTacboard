@@ -114,6 +114,7 @@
   .ringtpl span { margin-right:2px; }
   .ringtpl button { padding:2px 4px; font-size:11px; flex:1; min-width:0; }
   .ringtpl button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .ringtpl button:disabled { opacity:.4; cursor:not-allowed; }
   .ringrow.active { border-color:var(--line); background:var(--hover); }
   .ringrow.placing { border-color:var(--accent); }
   .ringrow .sw { width:14px; height:14px; border-radius:50%; flex:none; box-sizing:border-box; }
@@ -177,7 +178,7 @@
     選択中：白い丸をドラッグで向き、Q/Eで45°回転、Dでダウン切替、Deleteで削除<br>
     射線：選択中のポーン横の照準（⊕）をドラッグ、Xで消去<br>
     <b>スキル</b>：レジェンドを右クリック→スキルを選び、マップを押したままドラッグで向き／長さ（色は選択中の部隊）。範囲データのないスキルはアイコンのみ<br>
-    <b>リング</b>：R1〜R6 で現在／次／次の次（緑）を規定の半径で配置（R1は現在のリングを置かず、置いてあればその内側に収める。R6の次は半径1mの収縮中心）。分からない円は ✕ で消す。前のラウンドから進めると位置を繰り上げて引き継ぐ。「配置」→ドラッグで手動でも置ける（次の次＝リングコンソールで分かる緑の円）。行をクリックで中心・半径のハンドルを表示<br>
+    <b>リング</b>：R1〜R6 で現在／次／次の次（緑）をマップ別の規定半径で配置（R1の現在は置かない、R6の次は収縮点）。データ未確認の円は今のまま残す。分からない円は ✕ で消す。前のラウンドから進めると位置を繰り上げて引き継ぐ。「配置」→ドラッグで手動でも置ける（次の次＝リングコンソールで分かる緑の円）。行をクリックで中心・半径のハンドルを表示<br>
     <b>ステップ</b>：下のバーで切替（←/→キー）、＋で今の状態を複製して追加、▶ で補間再生（Space）<br>
     ホイール：ズーム ／ M：距離測定→実測値で補正 ／ 右クリック：配置解除 ／ F：全体表示
   </div>
@@ -570,7 +571,7 @@ svg.addEventListener("pointermove", e => {
     const c = board.ring[drag.key];
     if (drag.type === "ringplace") { c.r = Math.max(1, Math.hypot(p.x - drag.start.x, p.y - drag.start.y)); drag.moved = true; }
     else if (drag.part === "center") { c.x = drag.c0.x + p.x - drag.start.x; c.y = drag.c0.y + p.y - drag.start.y; }
-    else c.r = Math.max(1, Math.hypot(p.x - c.x, p.y - c.y));
+    else c.r = Math.max(0.0254, Math.hypot(p.x - c.x, p.y - c.y));
     // 親の内側に収める（子は自動で追従）
     const parent = parentRing(drag.key); if (parent) clampRing(c, parent);
     if (drag.type === "ring") clampRings(); // 置いている最中は子を押し込まない（離した時に収める）
@@ -942,17 +943,37 @@ const RINGS = [
   { key:"next2", name:"次の次（緑）", color:"#2ee66b" },
 ];
 let activeRing = null, ringPlacing = null;
-// ラウンドごとのリング半径（m）。ラウンドnの「現在のリング」＝ラウンドn-1の収縮後の円、「次のリング」＝ラウンドnの収縮後の円。
-// 出典：Liquipedia World's Edge の Ring Information（収縮後の直径 1000/650/400/200/100m の半分）。値が変わったらここを直す。
-// R2〜R5 はリングコンソールで次の次（緑）まで分かる。R6 の収縮先は半径1mの点（中心は別途決まる）。分からない円はユーザーが ✕ で消す。
-// R1 は現在のリング（初期の円）が決まっていないので置かない。置いてあればその内側に収める。
-const RING_TEMPLATE = {
-  1:{ cur:null, next:500, next2:325 },
-  2:{ cur:500, next:325, next2:200 }, 3:{ cur:325, next:200, next2:100 }, 4:{ cur:200, next:100, next2:50 },
-  5:{ cur:100, next:50, next2:1 },    6:{ cur:50,  next:1,   next2:null },
+// ラウンドごとの「縮小後リング半径」（ゲーム内単位 inch。1 inch = 0.0254 m）。
+// 配列は [ラウンド0, ラウンド1, ラウンド2]。ラウンド0（最初のリング）は情報が古いため使わない（null）。
+// ラウンド1〜2 はマップごとに違い、3 以降は全マップ共通。null = 使わない／データ未確認（E-District の 1〜2）。
+// ラウンドnの テンプレート：現在＝ラウンドn-1 の縮小後、次＝ラウンドn の縮小後、次の次（緑）＝ラウンドn+1 の縮小後。
+// R1 の「現在」はラウンド0 なので置かない（手動で置いてあればそのまま残し、その内側に収める）。
+// 出典：ユーザー提供のリング表（2026-11-16）。値が変わったらここを直す。
+const RING_END_IN = {
+  worlds_edge: [null, 26500, 13000],
+  storm_point: [null, 30500, 15000],
+  broken_moon: [null, 28500, 13000],
+  e_district:  [null, null,  null],  // メートルで分かっているので RING_END_M_OVERRIDE で指定
+  kings_canyon:[null, 22000, 13000],
+  olympus:     [null, 22000, 13000],
 };
+const RING_END_COMMON_IN = { 3:8000, 4:4000, 5:2000, 6:1 };
+// メートル単位で分かっている値（ラウンド番号 → 縮小後の半径 m）。インチ表より優先する。
+// E-District：R2の現在＝R1縮小後 636m、R3の現在＝R2縮小後 314m（ユーザー提供 2026-11-16）
+const RING_END_M_OVERRIDE = { e_district: { 1:636, 2:314 } };
+const IN2M = 0.0254;
+// 戻り値：数値(m)＝その半径／null＝データ未確認／"none"＝その円は無い（最終収縮の先）
+function roundEndM(n) {
+  if (n > 6) return "none";
+  const om = RING_END_M_OVERRIDE[map.id]?.[n];
+  if (om != null) return om;
+  const v = n <= 2 ? (RING_END_IN[map.id] || [])[n] ?? null : RING_END_COMMON_IN[n];
+  return v == null ? null : v * IN2M;
+}
+function ringTemplate(n) { return { cur:roundEndM(n - 1), next:roundEndM(n), next2:roundEndM(n + 1) }; }
+const ROUNDS = [1, 2, 3, 4, 5, 6];
 function applyRingTemplate(n) {
-  const t = RING_TEMPLATE[n], R = board.ring;
+  const t = ringTemplate(n), R = board.ring;
   const r = svg.getBoundingClientRect(), vc = toWorld(r.left + r.width / 2, r.top + r.height / 2);
   // 1つ先のラウンドへ進めたときは、次→現在、次の次→次 に繰り上げる（位置を引き継ぐ）
   const advance = R.round === n - 1 && R.next;
@@ -960,9 +981,10 @@ function applyRingTemplate(n) {
   const curC = advance ? pos(R.next) : pos(R.cur) || pos(R.next) || vc;
   const nextC = (advance ? pos(R.next2) : pos(R.next)) || curC;
   const next2C = (advance ? null : pos(R.next2)) || nextC;
-  if (t.cur) R.cur = { ...curC, r:t.cur }; // R1 は現在のリングを変えない（無ければ無いまま）
-  if (t.next) R.next = { ...nextC, r:t.next }; else delete R.next;
-  if (t.next2 && t.next) R.next2 = { ...next2C, r:t.next2 }; else delete R.next2;
+  // 数値なら置く／"none" なら消す／null（データ未確認）なら今の円をそのまま残す
+  const put = (key, val, c) => { if (typeof val === "number") R[key] = { ...c, r:val }; else if (val === "none") delete R[key]; };
+  put("cur", t.cur, curC); put("next", t.next, nextC); put("next2", t.next2, next2C);
+  if (advance && t.next2 === null) delete R.next2;
   R.round = n;
   clampRings();
   activeRing = R.cur ? "cur" : "next"; saveBoard(); renderRing(); renderRingPanel();
@@ -1011,7 +1033,7 @@ function renderRing() {
     const lab = scEl(c.x, c.y - c.r), t = el("text", { y:c.r < 5 ? -16 : -8, "text-anchor":"middle", "font-size":12, "font-weight":700,
       fill:"#1d2129", "paint-order":"stroke", stroke:"#fff", "stroke-width":4 });
     const rd = def.key === "cur" && R.round ? `R${R.round} ` : def.key === "next" && R.round ? `R${R.round}収縮後 ` : def.key === "next2" && R.round ? `R${R.round + 1}収縮後 ` : "";
-    t.textContent = c.r < 5 ? `${rd}${def.name.replace("（緑）", "")}  収縮の中心（半径${c.r.toFixed(0)}m）` : `${rd}${def.name.replace("（緑）", "")}  半径${c.r.toFixed(0)}m`; lab.append(t); ringLayer.append(lab);
+    t.textContent = c.r < 5 ? `${rd}${def.name.replace("（緑）", "")}  収縮点` : `${rd}${def.name.replace("（緑）", "")}  半径${c.r.toFixed(1)}m`; lab.append(t); ringLayer.append(lab);
     if (activeRing === def.key) {
       const ch = scEl(c.x, c.y); ch.append(el("circle", { class:"ring-handle", "data-ring":def.key, "data-part":"center", r:9, fill:"#fff", stroke:"#1d2129", "stroke-width":3 }));
       const eh = scEl(c.x + c.r, c.y); eh.append(el("circle", { class:"ring-handle", "data-ring":def.key, "data-part":"edge", r:9, fill:def.color === "#ffffff" ? "#1d2129" : def.color, stroke:"#fff", "stroke-width":3 }));
@@ -1024,12 +1046,13 @@ function renderRingPanel() {
   const box = document.getElementById("ringList"); box.replaceChildren();
   const tpl = document.createElement("div"); tpl.className = "ringtpl";
   tpl.title = "ラウンドのテンプレート";
-  for (const n of Object.keys(RING_TEMPLATE)) {
+  for (const n of ROUNDS) {
     const b = document.createElement("button");
     b.textContent = "R" + n; b.classList.toggle("on", board.ring.round === +n);
-    const t = RING_TEMPLATE[n];
-    b.title = (t.cur ? `現在 半径${t.cur}m` : "現在のリングは任意（置けばその内側に収める）") + `／次 半径${t.next}m` + (t.next2 ? `／次の次（緑） 半径${t.next2}m` : "") +
-      "。1つ前のラウンドから進めると位置を繰り上げて引き継ぐ。分からない円は ✕ で消す";
+    const t = ringTemplate(n);
+    const fmt = v => typeof v === "number" ? (v < 1 ? "収縮点" : `半径${v.toFixed(1)}m`) : v === "none" ? "なし" : "データなし";
+    b.title = `R${n}：現在 ${fmt(t.cur)}／次 ${fmt(t.next)}／次の次（緑） ${fmt(t.next2)}。前のラウンドから進めると位置を繰り上げて引き継ぐ。分からない円は ✕ で消す`;
+    b.disabled = [t.cur, t.next, t.next2].every(v => typeof v !== "number");
     b.addEventListener("click", () => applyRingTemplate(+n));
     tpl.append(b);
   }
@@ -1041,7 +1064,7 @@ function renderRingPanel() {
     row.innerHTML = `<span class="sw"></span><span class="nm"></span><span class="rv"></span><button class="put"></button><button class="del" title="消す">✕</button>`;
     row.querySelector(".sw").style.cssText = def.key === "cur" ? "background:#c8143c55;border:2px solid #ff3b5c" : def.key === "next" ? "background:#fff;border:2px solid #1d2129" : "background:#2ee66b33;border:2px dashed #2ee66b";
     row.querySelector(".nm").textContent = def.name;
-    row.querySelector(".rv").textContent = c ? `${c.r.toFixed(0)}m` : "";
+    row.querySelector(".rv").textContent = c ? (c.r < 1 ? "点" : `${c.r.toFixed(0)}m`) : "";
     const put = row.querySelector(".put"); put.textContent = ringPlacing === def.key ? "配置中" : "配置";
     put.addEventListener("click", e => { e.stopPropagation(); setRingPlacing(ringPlacing === def.key ? null : def.key); });
     row.querySelector(".del").hidden = !c;
