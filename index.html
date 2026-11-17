@@ -17,7 +17,7 @@
   button.icon { padding:5px 8px; }
   button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .spacer { flex:1; }
-  #info { color:var(--sub); font-variant-numeric:tabular-nums; min-width:220px; text-align:right; font-size:12px; }
+  #info { color:var(--sub); font-variant-numeric:tabular-nums; min-width:150px; text-align:right; font-size:12px; }
   #scaleInfo { color:var(--sub); font-size:12px; }
   #scaleInfo b { color:var(--text); font-weight:600; }
   #scaleInfo .tag { margin-left:6px; padding:1px 6px; border-radius:4px; background:#fff1d6; color:#9a6200; }
@@ -32,6 +32,8 @@
   #penOpts .pw.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   svg#board.drawing { cursor:crosshair; }
   svg#board.erasing { cursor:cell; }
+  svg#board.erasing .pawn, svg#board.erasing .skill .skill-icon { cursor:not-allowed; }
+  svg#board.erasing .pawn:hover, svg#board.erasing .skill:hover { opacity:.45; } /* 消える対象を薄く表示 */
   #drawLayer { pointer-events:none; }
   #scopePanel { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--sub); }
   #scopePanel[hidden] { display:none; }
@@ -81,6 +83,32 @@
   .skill .skill-rot { cursor:alias; }
   .aim-handle { cursor:crosshair; }
   .aim { pointer-events:none; }
+  details.tip summary { cursor:pointer; font-weight:600; color:var(--text); margin-bottom:6px; }
+  #guide { position:fixed; inset:0; z-index:50; }
+  #guide[hidden] { display:none; }
+  #guideBlock { position:absolute; inset:0; } /* 背面の操作を止める */
+  #guideSpot { position:absolute; border-radius:10px; box-shadow:0 0 0 9999px rgba(12,14,18,.62); outline:3px solid var(--accent);
+    outline-offset:2px; transition:all .25s ease; pointer-events:none; }
+  #guideCard { position:absolute; width:400px; background:#fff; border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.35);
+    padding:18px 20px 14px; display:flex; flex-direction:column; }
+  #guideBody { flex:1; } /* 本文の長さが違っても、下のボタン位置はそろえる */
+  #guideCard .gstep { font-size:11px; font-weight:700; color:var(--accent); letter-spacing:.06em; }
+  #guideCard h3 { margin:2px 0 10px; font-size:18px; }
+  #guideCard ul { margin:0; padding-left:18px; font-size:13px; line-height:1.65; }
+  #guideCard li { margin-bottom:3px; }
+  #guideCard .gnote { margin-top:10px; font-size:12px; color:var(--sub); line-height:1.6; }
+  #guideCard kbd { display:inline-block; min-width:18px; padding:0 5px; border:1px solid #c9ced6; border-bottom-width:2px; border-radius:4px;
+    background:#f7f8fa; font:600 11px/18px "Segoe UI", sans-serif; text-align:center; }
+  #guideCard .gfoot { display:flex; align-items:center; gap:8px; margin-top:14px; }
+  #guideCard .gdots { display:flex; gap:5px; flex:1; }
+  #guideCard .gdots span { width:8px; height:8px; border-radius:50%; background:#d7dbe2; cursor:pointer; }
+  #guideCard .gdots span.on { background:var(--accent); }
+  #guideCard .gskip { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); margin-top:10px; }
+  #guideClose { position:absolute; top:8px; right:8px; width:30px; height:30px; padding:0; border:none; background:none;
+    font-size:18px; color:var(--sub); border-radius:50%; }
+  #guideClose:hover { background:var(--hover); color:var(--text); }
+  #guidePrev:disabled { opacity:.35; cursor:default; }
+  #guideNext { min-width:84px; background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
   .tip.legal { border-top:1px solid var(--line); padding-top:8px; font-size:10px; }
   .tip { font-size:11px; color:var(--sub); margin-top:12px; line-height:1.6; }
 
@@ -145,7 +173,7 @@
   <button id="measureBtn" title="M">距離を測る</button>
   <button id="fitBtn" title="F">全体表示</button>
   <button id="penBtn" title="ペン（P）：ドラッグで線を描く。Ctrl+Zで1本戻す">✏ ペン</button>
-  <button id="eraserBtn" title="消しゴム（Shift+P）：触れた線を丸ごと消す">消しゴム</button>
+  <button id="eraserBtn" title="消しゴム（Shift+P）：なぞった線を丸ごと消す／ポーン・スキルはクリックで消す。Ctrl+Zで戻す">消しゴム</button>
   <span id="penOpts" hidden></span>
   <label class="size">ポーン <input id="sizeInput" type="range" min="14" max="56" step="2"></label>
   <span id="scaleInfo"></span>
@@ -158,6 +186,7 @@
   <span id="scopePanel" hidden>スコープ <span id="scopeBtns"></span></span>
   <span class="spacer"></span>
   <span id="info">—</span>
+  <button id="guideBtn" title="使い方ガイドを表示">？ 使い方</button>
 </header>
 
 <div id="planPanel" hidden>
@@ -185,7 +214,7 @@
   </div>
   <h2>レジェンド</h2>
   <div id="legendList"></div>
-  <div class="tip">
+  <details class="tip"><summary>操作一覧（すべて）</summary>
     レジェンドを選んでマップをクリックで配置（選択中の部隊に追加、Ctrl＋クリックで続けて配置）<br>部隊名はダブルクリックで変更<br>
     ドラッグ：移動 ／ Shift＋ドラッグ：部隊ごと移動<br>
     選択中：白い丸をドラッグで向き、Q/Eで45°回転、Dでダウン切替、Deleteで削除<br>
@@ -193,9 +222,9 @@
     <b>スキル</b>：レジェンドを右クリック→スキルを選び、マップを押したままドラッグで向き／長さ（色は選択中の部隊）。範囲データのないスキルはアイコンのみ<br>
     <b>リング</b>：R1〜R6 で現在／次／次の次（緑）をマップ別の規定半径で配置（R1の現在は置かない、R6の次は収縮点）。データ未確認の円は今のまま残す。分からない円は ✕ で消す。前のラウンドから進めると位置を繰り上げて引き継ぐ。「配置」→ドラッグで手動でも置ける（次の次＝リングコンソールで分かる緑の円）。行をクリックで中心・半径のハンドルを表示<br>
     <b>ステップ</b>：下のバーで切替（←/→キー）、＋で今の状態を複製して追加、▶ で補間再生（Space）<br>
-    <b>ペン</b>：「✏ ペン」（P）でドラッグして線を描く。色・太さはヘッダーで選択、Ctrl+Zで1本戻す。「消しゴム」（Shift+P）は触れた線を丸ごと消す。線はステップごとに保存<br>
+    <b>ペン</b>：「✏ ペン」（P）でドラッグして線を描く。色・太さはヘッダーで選択。「消しゴム」（Shift+P）はなぞった線を丸ごと消し、ポーン・スキルはクリックで消す。Ctrl+Zで直前の描画・消去を戻す。線はステップごとに保存<br>
     ホイール：ズーム ／ M：距離測定→実測値で補正 ／ 右クリック：配置解除 ／ F：全体表示
-  </div>
+  </details>
   <div class="tip legal">非公式のファンメイドツールです。Electronic Arts／Respawn Entertainment とは関係がなく、承認も受けていません。ゲームの名称・画像の権利は各権利者に帰属します。数値は推定を含み、無保証です。</div>
 </aside>
 
@@ -223,6 +252,23 @@
     <button id="delStep" title="このステップを削除">削除</button>
     <span class="sep"></span>
     <button id="playBtn" title="最初（または今のステップ）から再生（Space）">▶ 再生</button>
+  </div>
+</div>
+
+<div id="guide" hidden>
+  <div id="guideBlock"></div>
+  <div id="guideSpot"></div>
+  <div id="guideCard" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <button id="guideClose" title="ガイドを閉じる（Esc）">✕</button>
+    <div class="gstep" id="guideStep"></div>
+    <h3 id="guideTitle"></h3>
+    <div id="guideBody"></div>
+    <div class="gfoot">
+      <div class="gdots" id="guideDots"></div>
+      <button id="guidePrev">戻る</button>
+      <button id="guideNext">次へ</button>
+    </div>
+    <label class="gskip"><input type="checkbox" id="guideNoShow" checked> 次回から自動で表示しない（右上「？ 使い方」でいつでも見られます）</label>
   </div>
 </div>
 
@@ -513,10 +559,14 @@ svg.addEventListener("pointerdown", e => {
   if (playing) { drag = { type:"pan", sx:e.clientX, sy:e.clientY, vx:view.x, vy:view.y }; svg.setPointerCapture(e.pointerId); return; }
   if (drawTool === "pen") {
     const s = { id:newId(), color:penColor, w:penWidth, pts:[pt.x, pt.y] };
-    board.drawings.push(s); drawLayer.append(buildStrokeEl(s));
+    board.drawings.push(s); drawLayer.append(buildStrokeEl(s)); pushUndo({ kind:"add", list:"drawings", id:s.id });
     drag = { type:"pen", stroke:s, last:pt }; svg.setPointerCapture(e.pointerId); return;
   }
   if (drawTool === "eraser") {
+    // ポーン・スキルをクリックしたらそれを消す（射線はポーンと一緒に消える）。それ以外は線を消すドラッグ
+    const hitPawn = e.target.closest(".pawn"), hitSkill = !hitPawn && e.target.closest(".skill");
+    if (hitPawn) { removeItem("pawns", hitPawn.__pawn); renderPawns(); renderSquads(); saveBoard(); return; }
+    if (hitSkill) { removeItem("skills", hitSkill.__skill); renderSkills(); updateScopePanel(); saveBoard(); return; }
     drag = { type:"erase", last:pt, changed:eraseAt(pt, pt) }; svg.setPointerCapture(e.pointerId); return;
   }
   const rh = e.target.closest(".ring-handle");
@@ -1300,15 +1350,134 @@ function eraseAt(a, b) {
   const before = board.drawings.length;
   for (let i = 0; i <= n; i++) {
     const p = { x:a.x + (b.x - a.x) * i / n, y:a.y + (b.y - a.y) * i / n };
-    board.drawings = board.drawings.filter(s => !strokeHit(s, p));
+    for (const s of board.drawings.filter(s => strokeHit(s, p))) removeItem("drawings", s);
   }
   if (board.drawings.length !== before) { renderDrawings(); return true; }
   return false;
 }
-function undoStroke() {
-  if (!board.drawings.length) return;
-  board.drawings.pop(); saveBoard(); renderDrawings();
+// ---- 取り消し（Ctrl+Z）：ペンで描いた線・消しゴムで消したもの（線・ポーン・スキル）を、表示中のステップで新しい順に戻す ----
+let undoStack = [];
+function pushUndo(op) { op.step = board.cur; op.map = map.id; undoStack.push(op); if (undoStack.length > 200) undoStack.shift(); }
+function removeItem(list, item) {
+  const i = board[list].indexOf(item); if (i < 0) return;
+  board[list].splice(i, 1);
+  if (list === "pawns" || list === "skills") { if (selected === item.id) selected = null; }
+  pushUndo({ kind:"remove", list, item, index:i });
 }
+function undoStroke() {
+  // 別のステップ・マップの操作は戻さない（そのステップに来たときに戻せるよう残す）
+  for (let k = undoStack.length - 1; k >= 0; k--) {
+    const op = undoStack[k];
+    if (op.step !== board.cur || op.map !== map.id) continue;
+    undoStack.splice(k, 1);
+    if (op.kind === "add") board[op.list] = board[op.list].filter(x => x.id !== op.id);
+    else board[op.list].splice(Math.min(op.index, board[op.list].length), 0, op.item);
+    syncStep(); saveBoard();
+    renderPawns(); renderSkills(); renderDrawings(); renderSquads(); updateScopePanel();
+    return;
+  }
+}
+
+
+// ===================== 使い方ガイド（初回表示・4ステップ） =====================
+const GUIDE = [
+  { title:"レジェンドを配置する", target:() => [document.getElementById("squadList"), document.getElementById("legendList")], body:`
+    <ul>
+      <li>部隊を選んでから、レジェンドの顔を<b>クリック</b> → マップを<b>クリック</b>で配置（<kbd>Ctrl</kbd>＋クリックで続けて配置）</li>
+      <li>ドラッグで移動、<kbd>Shift</kbd>＋ドラッグで<b>部隊ごと</b>移動</li>
+      <li>選択中：白い丸をドラッグで向き（<kbd>Q</kbd>/<kbd>E</kbd>で45°）、<kbd>D</kbd>でダウン、<kbd>Delete</kbd>で削除</li>
+      <li>ポーン横の照準 ⊕ をドラッグで<b>射線</b>（<kbd>X</kbd>で消去）</li>
+    </ul>
+    <div class="gnote">部隊名はダブルクリックで変更できます。</div>` },
+  { title:"スキルを置く", target:() => [document.getElementById("legendList")], body:`
+    <ul>
+      <li>レジェンドの顔を<b>右クリック</b> → 使うスキルを選ぶ</li>
+      <li>マップを<b>押したままドラッグ</b>して、向き・長さを決めて配置（色は選択中の部隊）</li>
+      <li>範囲は実寸で表示。範囲データのないスキルはアイコンだけ置けます</li>
+      <li>選択中：白い丸で回転・伸縮、<kbd>Q</kbd>/<kbd>E</kbd>で45°回転、<kbd>Delete</kbd>で削除</li>
+    </ul>` },
+  { title:"リングを置く", target:() => [document.getElementById("ringList")], body:`
+    <ul>
+      <li><b>R1〜R6</b> を押すと、そのラウンドの円をマップ別の規定半径でまとめて配置<br>
+        <span style="color:#d0213f">赤＝現在</span>／<b>白＝次</b>／<span style="color:#14a64a">緑＝次の次（リングコンソール）</span></li>
+      <li>前のラウンドから進めると、位置を繰り上げて引き継ぎます</li>
+      <li>行をクリックで中心・半径のハンドル。分からない円は ✕ で消す</li>
+      <li>「配置」→ マップをドラッグで手動でも置けます</li>
+    </ul>` },
+  { title:"ステップで作戦を組み立てる", target:() => [document.getElementById("timeline")], body:`
+    <ul>
+      <li><b>＋ 追加</b>で今の盤面を複製 → 駒を動かして「次の一手」を作る</li>
+      <li><kbd>←</kbd>/<kbd>→</kbd>で切替、<b>▶ 再生</b>（<kbd>Space</kbd>）で滑らかにアニメーション</li>
+      <li>ヘッダーの<b>作戦 ▾</b>で保存、ファイルに書き出し・読み込み（共有に使えます）</li>
+      <li><b>✏ ペン</b>（<kbd>P</kbd>）で線を描く、<b>消しゴム</b>（<kbd>Shift</kbd>+<kbd>P</kbd>）で線・ポーン・スキルを消す（<kbd>Ctrl</kbd>+<kbd>Z</kbd>で戻す）</li>
+    </ul>
+    <div class="gnote">ホイールでズーム／<kbd>M</kbd>で距離測定／<kbd>F</kbd>で全体表示／右クリックで配置モード解除。<br>全操作は左パネル下の「操作一覧」にもあります。</div>` },
+];
+const GUIDE_KEY = "apexBoard.guideHidden";
+let guideIdx = 0;
+const guideEl = document.getElementById("guide");
+function unionRect(els) {
+  const rs = els.filter(Boolean).map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
+  const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top));
+  const r = Math.max(...rs.map(r => r.right)), b = Math.max(...rs.map(r => r.bottom));
+  // 画面外にはみ出す分は切り詰める
+  return { left:Math.max(4, l), top:Math.max(4, t), right:Math.min(innerWidth - 4, r), bottom:Math.min(innerHeight - 4, b) };
+}
+function showGuideStep(i) {
+  guideIdx = i;
+  const g = GUIDE[i], pad = 6;
+  document.getElementById("guideStep").textContent = `STEP ${i + 1} / ${GUIDE.length}`;
+  document.getElementById("guideTitle").textContent = g.title;
+  document.getElementById("guideBody").innerHTML = g.body;
+  document.getElementById("guidePrev").disabled = i === 0; // 非表示にせず無効化（ボタン位置を動かさない）
+  document.getElementById("guideNext").textContent = i === GUIDE.length - 1 ? "はじめる" : "次へ";
+  const dots = document.getElementById("guideDots"); dots.replaceChildren();
+  GUIDE.forEach((_, j) => { const d = document.createElement("span"); d.className = j === i ? "on" : ""; d.title = GUIDE[j].title; d.addEventListener("click", () => showGuideStep(j)); dots.append(d); });
+  // 強調する場所
+  const r = unionRect(g.target()), spot = document.getElementById("guideSpot");
+  Object.assign(spot.style, { left:(r.left - pad) + "px", top:(r.top - pad) + "px", width:(r.right - r.left + pad*2) + "px", height:(r.bottom - r.top + pad*2) + "px" });
+  placeGuideCard();
+}
+// カードはどのステップでも同じ位置・同じ高さ（「次へ」「戻る」「✕」を毎回同じ場所でクリックできる）
+// 位置：左パネルのすぐ右・上寄せ。どのステップの強調（左パネル／下のバー）とも重ならない
+let guideCardH = 0;
+function placeGuideCard() {
+  const card = document.getElementById("guideCard"), side = document.querySelector("aside").getBoundingClientRect();
+  card.style.height = guideCardH ? guideCardH + "px" : "";
+  card.style.left = Math.min(side.right + 24, innerWidth - card.offsetWidth - 16) + "px";
+  card.style.top = Math.max(16, Math.min(side.top + 24, innerHeight - card.offsetHeight - 110)) + "px";
+}
+// 全ステップを実際に一度ずつ表示して、いちばん高いカードに合わせる
+function measureGuideCard() {
+  const card = document.getElementById("guideCard"), cur = guideIdx;
+  guideCardH = 0; let h = 0;
+  for (let i = 0; i < GUIDE.length; i++) { showGuideStep(i); card.style.height = ""; h = Math.max(h, card.scrollHeight); }
+  guideCardH = Math.ceil(h); guideIdx = cur;
+}
+function openGuide(i = 0) {
+  closePlanPanel(); closeSkillMenu();
+  guideEl.hidden = false; document.getElementById("guideNoShow").checked = true; // 既定は「次回から自動で表示しない」
+  measureGuideCard();
+  showGuideStep(i);
+  document.getElementById("guideNext").focus();
+}
+function closeGuide() {
+  guideEl.hidden = true;
+  store(GUIDE_KEY, document.getElementById("guideNoShow").checked);
+}
+document.getElementById("guideClose").addEventListener("click", closeGuide);
+document.getElementById("guidePrev").addEventListener("click", () => showGuideStep(Math.max(0, guideIdx - 1)));
+document.getElementById("guideNext").addEventListener("click", () => guideIdx < GUIDE.length - 1 ? showGuideStep(guideIdx + 1) : closeGuide());
+document.getElementById("guideBtn").addEventListener("click", () => openGuide(0));
+window.addEventListener("resize", () => { if (!guideEl.hidden) { measureGuideCard(); showGuideStep(guideIdx); } });
+// ガイド表示中はキー操作をガイドだけに使う（盤面のショートカットを止める）
+document.addEventListener("keydown", e => {
+  if (guideEl.hidden) return;
+  e.stopImmediatePropagation();
+  if (e.key === "Escape") closeGuide();
+  else if (e.key === "ArrowRight" || e.key === "Enter") document.getElementById("guideNext").click();
+  else if (e.key === "ArrowLeft") showGuideStep(Math.max(0, guideIdx - 1));
+}, true);
 
 // ===================== 距離測定 =====================
 let measuring = false, measurePts = [], measuredDistance = 0;
@@ -1436,6 +1605,7 @@ document.getElementById("eraserBtn").addEventListener("click", () => setDrawTool
 const savedMap = restore("apexBoard.map", null);
 sel.value = (MAPS.find(m => m.id === savedMap) || MAPS[0]).id;
 loadMap(sel.value);
+if (!restore(GUIDE_KEY, false)) openGuide(0); // 初回（または「次回から表示しない」を外した人）にはガイドを出す
 </script>
 </body>
 </html>
