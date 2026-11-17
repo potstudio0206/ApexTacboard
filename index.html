@@ -14,6 +14,7 @@
   select, button { background:var(--field); color:var(--text); border:1px solid var(--line);
     border-radius:6px; padding:5px 10px; font:inherit; cursor:pointer; }
   button:hover { border-color:#a9b0bc; background:var(--hover); }
+  button.icon { padding:5px 8px; }
   button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .spacer { flex:1; }
   #info { color:var(--sub); font-variant-numeric:tabular-nums; min-width:220px; text-align:right; font-size:12px; }
@@ -23,6 +24,15 @@
   #scaleInfo .tag.ok { background:#dcf5e5; color:#16733b; }
   #calPanel { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--sub); }
   #calPanel[hidden] { display:none; }
+  #penOpts { display:inline-flex; align-items:center; gap:4px; }
+  #penOpts[hidden] { display:none; }
+  #penOpts .pc { width:20px; height:20px; padding:0; border-radius:50%; border:2px solid #c9ced6; }
+  #penOpts .pc.on { box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+  #penOpts .pw { padding:2px 7px; font-size:12px; }
+  #penOpts .pw.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  svg#board.drawing { cursor:crosshair; }
+  svg#board.erasing { cursor:cell; }
+  #drawLayer { pointer-events:none; }
   #scopePanel { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--sub); }
   #scopePanel[hidden] { display:none; }
   #scopeBtns { display:inline-flex; gap:3px; }
@@ -134,14 +144,17 @@
   <button id="planBtn" title="作戦の保存・読み込み">作戦 ▾</button>
   <button id="measureBtn" title="M">距離を測る</button>
   <button id="fitBtn" title="F">全体表示</button>
+  <button id="penBtn" title="ペン（P）：ドラッグで線を描く。Ctrl+Zで1本戻す">✏ ペン</button>
+  <button id="eraserBtn" title="消しゴム（Shift+P）：触れた線を丸ごと消す">消しゴム</button>
+  <span id="penOpts" hidden></span>
   <label class="size">ポーン <input id="sizeInput" type="range" min="14" max="56" step="2"></label>
   <span id="scaleInfo"></span>
   <span id="calPanel" hidden>
     ゲーム内実測値 <input id="calInput" type="number" min="1" step="0.1"> m
     <button id="calApply">スケール補正</button>
   </span>
-  <button id="calReset" title="このマップの補正を既定値に戻す">補正リセット</button>
-  <button id="calExport" title="現在のスケールを maps.json として保存">maps.json 書き出し</button>
+  <button id="calReset" class="icon" title="スケール補正をリセット（このマップの既定値に戻す）">↺</button>
+  <button id="calExport" class="icon" title="現在のスケールを maps.json として書き出す">⤓</button>
   <span id="scopePanel" hidden>スコープ <span id="scopeBtns"></span></span>
   <span class="spacer"></span>
   <span id="info">—</span>
@@ -180,6 +193,7 @@
     <b>スキル</b>：レジェンドを右クリック→スキルを選び、マップを押したままドラッグで向き／長さ（色は選択中の部隊）。範囲データのないスキルはアイコンのみ<br>
     <b>リング</b>：R1〜R6 で現在／次／次の次（緑）をマップ別の規定半径で配置（R1の現在は置かない、R6の次は収縮点）。データ未確認の円は今のまま残す。分からない円は ✕ で消す。前のラウンドから進めると位置を繰り上げて引き継ぐ。「配置」→ドラッグで手動でも置ける（次の次＝リングコンソールで分かる緑の円）。行をクリックで中心・半径のハンドルを表示<br>
     <b>ステップ</b>：下のバーで切替（←/→キー）、＋で今の状態を複製して追加、▶ で補間再生（Space）<br>
+    <b>ペン</b>：「✏ ペン」（P）でドラッグして線を描く。色・太さはヘッダーで選択、Ctrl+Zで1本戻す。「消しゴム」（Shift+P）は触れた線を丸ごと消す。線はステップごとに保存<br>
     ホイール：ズーム ／ M：距離測定→実測値で補正 ／ 右クリック：配置解除 ／ F：全体表示
   </div>
   <div class="tip legal">非公式のファンメイドツールです。Electronic Arts／Respawn Entertainment とは関係がなく、承認も受けていません。ゲームの名称・画像の権利は各権利者に帰属します。数値は推定を含み、無保証です。</div>
@@ -192,6 +206,7 @@
       <image id="mapImg" x="0" y="0" preserveAspectRatio="none"/>
       <g id="ringLayer"></g>
       <g id="skillLayer"></g>
+      <g id="drawLayer"></g>
       <g id="aimLayer"></g>
       <g id="pawnLayer"></g>
       <g id="measureLayer"></g>
@@ -256,6 +271,7 @@ const mapImg = document.getElementById("mapImg");
 const pawnLayer = document.getElementById("pawnLayer");
 const skillLayer = document.getElementById("skillLayer");
 const aimLayer = document.getElementById("aimLayer");
+const drawLayer = document.getElementById("drawLayer");
 const ringLayer = document.getElementById("ringLayer");
 const measureLayer = document.getElementById("measureLayer");
 const info = document.getElementById("info");
@@ -298,7 +314,7 @@ function defaultBoard() {
     { id:newId(), name:"味方", color:SQUAD_COLORS[0] },
     { id:newId(), name:"敵A", color:SQUAD_COLORS[1] },
     { id:newId(), name:"敵B", color:SQUAD_COLORS[2] },
-  ], steps: [{ pawns: [], skills: [], ring: {} }], cur: 0 };
+  ], steps: [{ pawns: [], skills: [], ring: {}, drawings: [] }], cur: 0 };
 }
 function saveBoard() { syncStep(); store(boardKey(), { squads:board.squads, steps:board.steps, cur:board.cur }); }
 function loadBoard() {
@@ -351,9 +367,9 @@ document.getElementById("addSquad").addEventListener("click", () => {
   board.squads.push(sq); activeSquad = sq.id; saveBoard(); renderSquads();
 });
 document.getElementById("clearBoard").addEventListener("click", () => {
-  if (!(board.pawns.length || board.skills.length || Object.keys(board.ring).length)
-      || !window.confirm(`ステップ ${board.cur + 1} のポーン・スキル・リングを消去しますか？`)) return;
-  board.pawns = []; board.skills = []; board.ring = {}; selected = null; activeRing = null; saveBoard(); renderAll();
+  if (!(board.pawns.length || board.skills.length || board.drawings.length || Object.keys(board.ring).length)
+      || !window.confirm(`ステップ ${board.cur + 1} のポーン・スキル・リング・線を消去しますか？`)) return;
+  board.pawns = []; board.skills = []; board.ring = {}; board.drawings = []; selected = null; activeRing = null; saveBoard(); renderAll();
 });
 
 // ===================== レジェンド一覧 =====================
@@ -377,6 +393,7 @@ function renderLegends() {
   }
 }
 function setPlacing(id) {
+  if (id && typeof drawTool !== "undefined" && drawTool) setDrawTool(null);
   placingLegend = id;
   if (id) { setMeasuring(false); if (typeof placingSkill !== "undefined" && placingSkill) setPlacingSkill(null); }
   document.querySelectorAll(".leg").forEach(b => b.classList.toggle("on", b.dataset.id === id));
@@ -494,6 +511,14 @@ svg.addEventListener("pointerdown", e => {
   if (e.button === 2) return;
   const pt = toWorld(e.clientX, e.clientY);
   if (playing) { drag = { type:"pan", sx:e.clientX, sy:e.clientY, vx:view.x, vy:view.y }; svg.setPointerCapture(e.pointerId); return; }
+  if (drawTool === "pen") {
+    const s = { id:newId(), color:penColor, w:penWidth, pts:[pt.x, pt.y] };
+    board.drawings.push(s); drawLayer.append(buildStrokeEl(s));
+    drag = { type:"pen", stroke:s, last:pt }; svg.setPointerCapture(e.pointerId); return;
+  }
+  if (drawTool === "eraser") {
+    drag = { type:"erase", last:pt, changed:eraseAt(pt, pt) }; svg.setPointerCapture(e.pointerId); return;
+  }
   const rh = e.target.closest(".ring-handle");
   if (rh) { drag = { type:"ring", key:rh.dataset.ring, part:rh.dataset.part, start:pt, c0:{ ...board.ring[rh.dataset.ring] } }; svg.setPointerCapture(e.pointerId); return; }
   if (ringPlacing) {
@@ -567,6 +592,14 @@ svg.addEventListener("pointermove", e => {
     }
     renderAims();
     drag.moved = true;
+  } else if (drag.type === "pen") {
+    if (Math.hypot(p.x - drag.last.x, p.y - drag.last.y) * view.scale >= 2) { // 画面上2px以上動いたら点を足す
+      drag.stroke.pts.push(p.x, p.y); drag.last = p;
+      drawLayer.querySelector(`[data-id="${drag.stroke.id}"]`)?.replaceWith(buildStrokeEl(drag.stroke));
+    }
+  } else if (drag.type === "erase") {
+    if (eraseAt(drag.last, p)) drag.changed = true;
+    drag.last = p;
   } else if (drag.type === "ring" || drag.type === "ringplace") {
     const c = board.ring[drag.key];
     if (drag.type === "ringplace") { c.r = Math.max(1, Math.hypot(p.x - drag.start.x, p.y - drag.start.y)); drag.moved = true; }
@@ -594,6 +627,7 @@ svg.addEventListener("pointermove", e => {
   }
 });
 svg.addEventListener("pointerup", () => {
+  if (drag && (drag.type === "pen" || (drag.type === "erase" && drag.changed))) saveBoard();
   if (drag && drag.type === "ringplace") {
     const c = board.ring[drag.key], parent = parentRing(drag.key);
     if (c.r < 5) c.r = parent ? parent.r * 0.5 : 400; // ドラッグなし→既定の半径
@@ -611,7 +645,7 @@ svg.addEventListener("pointerup", () => {
   if (drag && (drag.type === "rotate" || drag.type === "aim" || drag.moved)) saveBoard();
   drag = null; svg.classList.remove("panning");
 });
-svg.addEventListener("contextmenu", e => { e.preventDefault(); clearMeasure(); setPlacing(null); setPlacingSkill(null); setRingPlacing(null); });
+svg.addEventListener("contextmenu", e => { e.preventDefault(); clearMeasure(); setPlacing(null); setPlacingSkill(null); setRingPlacing(null); setDrawTool(null); });
 
 svg.addEventListener("wheel", e => {
   e.preventDefault();
@@ -626,6 +660,8 @@ svg.addEventListener("wheel", e => {
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
   if (e.key === " ") { e.preventDefault(); play(); return; }
+  if (!playing && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undoStroke(); return; }
+  if (!playing && e.key.toLowerCase() === "p" && !e.ctrlKey) { setDrawTool(e.shiftKey ? (drawTool === "eraser" ? null : "eraser") : (drawTool === "pen" ? null : "pen")); return; }
   if (playing) { if (e.key === "Escape") stop(); return; }
   if (e.key === "ArrowLeft") { goStep(board.cur - 1); return; }
   if (e.key === "ArrowRight") { goStep(board.cur + 1); return; }
@@ -634,7 +670,7 @@ document.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if (k === "m") setMeasuring(!measuring);
   else if (k === "f") fit();
-  else if (e.key === "Escape") { closePlanPanel(); setMeasuring(false); setPlacing(null); setPlacingSkill(null); setRingPlacing(null); closeSkillMenu(); select(null); activeRing = null; renderRing(); renderRingPanel(); }
+  else if (e.key === "Escape") { setDrawTool(null); closePlanPanel(); setMeasuring(false); setPlacing(null); setPlacingSkill(null); setRingPlacing(null); closeSkillMenu(); select(null); activeRing = null; renderRing(); renderRingPanel(); }
   else if (sk && (e.key === "Delete" || e.key === "Backspace")) {
     board.skills = board.skills.filter(x => x !== sk); selected = null; saveBoard(); renderSkills(); updateScopePanel();
   } else if (sk && (k === "q" || k === "e")) { sk.dir = ((sk.dir || 0) + (k === "e" ? 45 : -45) + 360) % 360; saveBoard(); refreshSkill(sk); }
@@ -726,6 +762,7 @@ document.addEventListener("pointerdown", e => { if (!ctx.hidden && !ctx.contains
 
 let placingSkill = null;
 function setPlacingSkill(s) {
+  if (s && drawTool) setDrawTool(null);
   placingSkill = s;
   if (s) { setPlacing(null); setMeasuring(false); }
   document.querySelectorAll(".leg").forEach(b => b.classList.toggle("skillon", !!s && b.dataset.id === s.legend));
@@ -832,14 +869,14 @@ function aimSkill(s, p) {
 
 // ===================== ステップ =====================
 // 保存形式：{ squads, steps:[{pawns, skills, ring}], cur }。board.pawns / skills / ring は表示中のステップを指す。
-function syncStep() { const st = board.steps[board.cur]; st.pawns = board.pawns; st.skills = board.skills; st.ring = board.ring; }
+function syncStep() { const st = board.steps[board.cur]; st.pawns = board.pawns; st.skills = board.skills; st.ring = board.ring; st.drawings = board.drawings; }
 function useStep(i) {
   board.cur = Math.max(0, Math.min(i, board.steps.length - 1));
   const st = board.steps[board.cur];
-  st.pawns = st.pawns || []; st.skills = st.skills || []; st.ring = st.ring || {};
-  board.pawns = st.pawns; board.skills = st.skills; board.ring = st.ring;
+  st.pawns = st.pawns || []; st.skills = st.skills || []; st.ring = st.ring || {}; st.drawings = st.drawings || [];
+  board.pawns = st.pawns; board.skills = st.skills; board.ring = st.ring; board.drawings = st.drawings;
 }
-function renderAll() { renderSquads(); renderPawns(); renderSkills(); renderRing(); renderRingPanel(); renderTimeline(); updateScopePanel(); }
+function renderAll() { renderSquads(); renderPawns(); renderSkills(); renderDrawings(); renderRing(); renderRingPanel(); renderTimeline(); updateScopePanel(); }
 function goStep(i) {
   if (playing || i < 0 || i >= board.steps.length) return;
   syncStep(); useStep(i); selected = null; activeRing = null; saveBoard(); renderAll();
@@ -853,7 +890,7 @@ function addStep() {
 }
 function deleteStep() {
   if (playing) return;
-  if (board.steps.length <= 1) { board.steps[0] = { pawns:[], skills:[], ring:{} }; useStep(0); }
+  if (board.steps.length <= 1) { board.steps[0] = { pawns:[], skills:[], ring:{}, drawings:[] }; useStep(0); }
   else {
     if (!window.confirm(`ステップ ${board.cur + 1} を削除しますか？`)) return;
     board.steps.splice(board.cur, 1); useStep(Math.min(board.cur, board.steps.length - 1));
@@ -904,7 +941,8 @@ function showBlend(A, B, t) {
   board.skills = blendList(A.skills, B.skills, t, blendSkill);
   board.ring = blendRing(A.ring || {}, B.ring || {}, t);
   if ((t < .5 ? A : B).ring?.round) board.ring.round = (t < .5 ? A : B).ring.round;
-  renderPawns(); renderSkills(); renderRing();
+  board.drawings = blendList(A.drawings || [], B.drawings || [], t, (a, b) => b); // 線は動かさず、増減だけフェード
+  renderPawns(); renderSkills(); renderRing(); renderDrawings();
 }
 function play() {
   if (playing) return stop();
@@ -920,7 +958,7 @@ function play() {
     const A = board.steps[from], B = board.steps[from + 1];
     if (e < TRANSITION_MS) { showBlend(A, B, ease(e / TRANSITION_MS)); }
     else {
-      useStep(from + 1); renderPawns(); renderSkills(); renderRing(); renderTimeline();
+      useStep(from + 1); renderPawns(); renderSkills(); renderRing(); renderDrawings(); renderTimeline();
       if (e >= TRANSITION_MS + HOLD_MS) {
         from += 1; t0 = now;
         if (from >= board.steps.length - 1) { stop(); return; }
@@ -1079,6 +1117,7 @@ function renderRingPanel() {
   }
 }
 function setRingPlacing(key) {
+  if (key && drawTool) setDrawTool(null);
   ringPlacing = key;
   if (key) { setPlacing(null); setPlacingSkill(null); setMeasuring(false); }
   svg.classList.toggle("placing", !!key);
@@ -1102,6 +1141,7 @@ function rescaleBoard(b, k) {
     for (const p of st.pawns || []) { p.x *= k; p.y *= k; if (p.aim) { p.aim.dx *= k; p.aim.dy *= k; } }
     for (const p of st.skills || []) { p.x *= k; p.y *= k; }
     for (const c of Object.values(st.ring || {})) if (c && typeof c === "object") { c.x *= k; c.y *= k; c.r *= k; }
+    for (const d of st.drawings || []) d.pts = d.pts.map(v => v * k);
   }
 }
 function loadPlan(plan) {
@@ -1181,9 +1221,95 @@ document.getElementById("planFile").addEventListener("change", async e => {
   if (loadPlan(plan)) closePlanPanel();
 });
 
+
+// ===================== ペン・消しゴム =====================
+// 線はステップごとに board.drawings = [{id, color, w, pts:[x0,y0,x1,y1,…]}]（座標はメートル、太さ w は画面px）。
+const PEN_COLORS = ["#ffffff", "#ff3b5c", "#ffd23f", "#3fa9ff", "#2ee66b", "#1d2129"];
+const PEN_WIDTHS = [{ w:2, label:"細" }, { w:4, label:"中" }, { w:8, label:"太" }];
+let drawTool = null; // null | "pen" | "eraser"
+let penColor = restore("apexBoard.penColor", PEN_COLORS[1]);
+let penWidth = restore("apexBoard.penWidth", 4);
+const ERASER_PX = 10; // 消しゴムの当たり判定（画面px）
+
+function setDrawTool(t) {
+  drawTool = t;
+  if (t) { setPlacing(null); setPlacingSkill(null); setRingPlacing(null); setMeasuring(false); select(null); }
+  document.getElementById("penBtn").classList.toggle("on", t === "pen");
+  document.getElementById("eraserBtn").classList.toggle("on", t === "eraser");
+  document.getElementById("penOpts").hidden = t !== "pen";
+  svg.classList.toggle("drawing", t === "pen");
+  svg.classList.toggle("erasing", t === "eraser");
+}
+function renderPenOpts() {
+  const box = document.getElementById("penOpts"); box.replaceChildren();
+  for (const c of PEN_COLORS) {
+    const b = document.createElement("button");
+    b.className = "pc" + (c === penColor ? " on" : ""); b.style.background = c; b.title = "色";
+    b.addEventListener("click", () => { penColor = c; store("apexBoard.penColor", c); renderPenOpts(); });
+    box.append(b);
+  }
+  for (const o of PEN_WIDTHS) {
+    const b = document.createElement("button");
+    b.className = "pw" + (o.w === penWidth ? " on" : ""); b.textContent = o.label; b.title = `太さ ${o.w}px`;
+    b.addEventListener("click", () => { penWidth = o.w; store("apexBoard.penWidth", o.w); renderPenOpts(); });
+    box.append(b);
+  }
+}
+function strokePath(pts) {
+  if (pts.length < 4) return `M${pts[0]} ${pts[1]} l0.001 0`;
+  let d = `M${pts[0]} ${pts[1]}`;
+  // 中点を通る2次ベジェで滑らかにつなぐ
+  for (let i = 2; i < pts.length - 2; i += 2) {
+    const mx = (pts[i] + pts[i + 2]) / 2, my = (pts[i + 1] + pts[i + 3]) / 2;
+    d += ` Q${pts[i]} ${pts[i + 1]} ${mx} ${my}`;
+  }
+  return d + ` L${pts[pts.length - 2]} ${pts[pts.length - 1]}`;
+}
+function buildStrokeEl(s) {
+  const g = el("g", { "data-id":s.id, opacity:s.__op ?? 1 });
+  const d = strokePath(s.pts);
+  // 暗いマップ・明るいマップの両方で見えるよう、細い縁取りを下に敷く
+  const edge = s.color === "#1d2129" ? "#ffffff" : "#1d2129";
+  g.append(el("path", { d, fill:"none", stroke:edge, "stroke-opacity":.45, "stroke-width":s.w + 2.5, "stroke-linecap":"round", "stroke-linejoin":"round", "vector-effect":"non-scaling-stroke" }));
+  g.append(el("path", { d, fill:"none", stroke:s.color, "stroke-width":s.w, "stroke-linecap":"round", "stroke-linejoin":"round", "vector-effect":"non-scaling-stroke" }));
+  return g;
+}
+function renderDrawings() {
+  drawLayer.replaceChildren();
+  for (const s of board.drawings || []) drawLayer.append(buildStrokeEl(s));
+}
+// 点 (px,py) と線分の距離（メートル）
+function segDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, L = dx*dx + dy*dy;
+  const t = L ? Math.max(0, Math.min(1, ((px - ax)*dx + (py - ay)*dy) / L)) : 0;
+  return Math.hypot(px - ax - t*dx, py - ay - t*dy);
+}
+function strokeHit(s, p) {
+  const tol = (ERASER_PX + s.w / 2) / view.scale, pts = s.pts;
+  if (pts.length < 4) return Math.hypot(p.x - pts[0], p.y - pts[1]) <= tol;
+  for (let i = 0; i < pts.length - 2; i += 2) if (segDist(p.x, p.y, pts[i], pts[i+1], pts[i+2], pts[i+3]) <= tol) return true;
+  return false;
+}
+// 消しゴム：前回位置→今回位置の間も補って判定（速く動かしても取りこぼさない）
+function eraseAt(a, b) {
+  const step = ERASER_PX / view.scale, n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
+  const before = board.drawings.length;
+  for (let i = 0; i <= n; i++) {
+    const p = { x:a.x + (b.x - a.x) * i / n, y:a.y + (b.y - a.y) * i / n };
+    board.drawings = board.drawings.filter(s => !strokeHit(s, p));
+  }
+  if (board.drawings.length !== before) { renderDrawings(); return true; }
+  return false;
+}
+function undoStroke() {
+  if (!board.drawings.length) return;
+  board.drawings.pop(); saveBoard(); renderDrawings();
+}
+
 // ===================== 距離測定 =====================
 let measuring = false, measurePts = [], measuredDistance = 0;
 function setMeasuring(on) {
+  if (on && drawTool) setDrawTool(null);
   measuring = on;
   if (on) { setPlacing(null); if (placingSkill) setPlacingSkill(null); if (ringPlacing) setRingPlacing(null); }
   document.getElementById("measureBtn").classList.toggle("on", on);
@@ -1239,12 +1365,13 @@ function setFactor(factor, calibrated) {
     for (const p of st.pawns || []) { p.x *= k; p.y *= k; if (p.aim) { p.aim.dx *= k; p.aim.dy *= k; } }
     for (const p of st.skills || []) { p.x *= k; p.y *= k; }
     for (const c of Object.values(st.ring || {})) if (c && typeof c === "object") { c.x *= k; c.y *= k; c.r *= k; }
+    for (const d of st.drawings || []) d.pts = d.pts.map(v => v * k);
   }
   saveBoard();
   view.scale /= k;
   view.x = r.width / 2 - c.x * k * view.scale;
   view.y = r.height / 2 - c.y * k * view.scale;
-  clearMeasure(); saveCalibration(); updateScaleInfo(); renderPawns(); renderSkills(); renderRing(); renderRingPanel(); applyView();
+  clearMeasure(); saveCalibration(); updateScaleInfo(); renderPawns(); renderSkills(); renderRing(); renderRingPanel(); renderDrawings(); applyView();
 }
 document.getElementById("calApply").addEventListener("click", () => {
   const actual = parseFloat(document.getElementById("calInput").value);
@@ -1299,6 +1426,9 @@ document.getElementById("nextStep").addEventListener("click", () => goStep(board
 document.getElementById("addStep").addEventListener("click", addStep);
 document.getElementById("delStep").addEventListener("click", deleteStep);
 document.getElementById("playBtn").addEventListener("click", play);
+renderPenOpts();
+document.getElementById("penBtn").addEventListener("click", () => setDrawTool(drawTool === "pen" ? null : "pen"));
+document.getElementById("eraserBtn").addEventListener("click", () => setDrawTool(drawTool === "eraser" ? null : "eraser"));
 const savedMap = restore("apexBoard.map", null);
 sel.value = (MAPS.find(m => m.id === savedMap) || MAPS[0]).id;
 loadMap(sel.value);
