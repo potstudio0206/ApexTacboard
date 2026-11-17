@@ -1021,6 +1021,10 @@ function applyRingTemplate(n) {
   const next2C = (advance ? null : pos(R.next2)) || nextC;
   // 数値なら置く／"none" なら消す／null（データ未確認）なら今の円をそのまま残す
   const put = (key, val, c) => { if (typeof val === "number") R[key] = { ...c, r:val }; else if (val === "none") delete R[key]; };
+  // データ未確認（null）で今の円を残す場合でも、別ラウンドの小さい円が残っていたら消す
+  // （例：R6→R1 に戻したとき、R6 の 50m の円を R1 の「現在」として残さない）。現在の円は次の円より大きいはず。
+  if (t.cur === null && R.cur && typeof t.next === "number" && R.cur.r <= t.next) delete R.cur;
+  if (t.next === null && R.next && typeof t.next2 === "number" && R.next.r <= t.next2) delete R.next;
   put("cur", t.cur, curC); put("next", t.next, nextC); put("next2", t.next2, next2C);
   if (advance && t.next2 === null) delete R.next2;
   R.round = n;
